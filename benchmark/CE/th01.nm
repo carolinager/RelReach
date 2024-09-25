@@ -1,0 +1,39 @@
+mdp
+
+const int n1 = 1; //should be always greater than n2
+const int n2 = 0;
+
+module thread_secret
+
+	    h : [0..n1];
+    	l : [0..2];
+    	f1 : [0..1];
+    	f2 : [0..1];
+
+
+    	[one] (h>0)&(l=0) -> (h'=h-1); // s1
+        [two] (h>0)&(l=0) -> (l'=1)&(f1'=1); // s2
+        [one] (h=0)&(l=0) -> (l'=2)&(f2'=1); // s4
+        [two] (h=0)&(l=0) -> (l'=1)&(f1'=1); // s3
+        [one] (h>0)&(f1=1) -> (h'=h-1); // s5
+        [two] (h=0)&(f1=0)&(f2=1) -> (l'=1)&(f1'=1); // s6
+    	[one] (h=0)&(f1=1)&(f2=0) -> (l'=2)&(f2'=1); // s7
+
+    	[one] (f1=1)&(f2=1) -> (f1'=1)&(f2'=1); // termination
+
+endmodule
+
+init (l=0)&(f1=0)&(f2=0)&(h=n1)  endinit
+
+label "h1" = (h=n1)&(l=0);
+label "h2" = (h=n2)&(l=0);
+label "l_1" = l=1;
+label "l_2" = l=2;
+label "terminated_l1" = (f1=1);
+label "terminated_l2" = (f2=1);
+label "terminated" = (f1=1)&(f2=1);
+label "terml1" = (f1=1)&(f2=1)&(l=1);
+label "terml2" = (f1=1)&(f2=1)&(l=2);
+
+
+// -modelPath ./benchmark/SSPOD/th01.nm -hyperString "ES sh . A s1 . A s2 . ET t1 (s1). ET t2 (s2) .  ( (h1(t1) & h2(t2)) -> (P(F terml1(t1)) = P(F terml1(t2))) )" -stutterLength 2
