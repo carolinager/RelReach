@@ -11,9 +11,9 @@ class ModelChecker:
 
 
     def modelCheck(self):
-        # create property
-        ## max { P(F a) - P (F b)} >= 0
-        ## multi(Pmax=? [ F targets[0] ], Pmin=? [ F targets[1]" ])
-        # min { P(F a) - P (F b)} <= 0   iff    max { P(F b) - P(F a)} >=0
-        ## multi(Pmax=? [ F targets[1] ], Pmin=? [ F targets[0] ])
+        # create multi-objective properties, where target_1 = target label + "_1", etc
+        # (1) check: max { P(F a) - P (F b)} >= 0
+        ## multi(Pmax=? [ F target_1 ], Pmin=? [ F target_2 ])
+        # (2) check: min { P(F a) - P (F b)} <= 0   iff    max { P(F b) - P(F a)} >=0
+        ## multi(Pmax=? [ F target_2 ], Pmin=? [ F target_1 ])
         pass

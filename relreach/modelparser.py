@@ -13,11 +13,12 @@ def buildUnfoldedModel(initial_model, targets):
     num_states = len(list(initial_model.states))
 
     # identify original initial states
-    initial_states = initial_model.labeling.get_states("init")
-    if len(list(initial_states)) != 2:
-        raise ValueError("The model has more than 2 initial states.")
-    init_1 = list(initial_states)[0] + 1
-    init_2 = list(initial_states)[1] + num_states + 1
+    initial_states_1 = list(initial_model.labeling.get_states("init1"))
+    initial_states_2 = list(initial_model.labeling.get_states("init2"))
+    if len(initial_states_1) != 1 or len(initial_states_2) != 1:
+        raise ValueError("The model does not have exactly 2 initial states.")
+    init_1 = initial_states_1[0] + 1
+    init_2 = initial_states_2[0] + num_states + 1
 
     # identify target states in first and second copy
     target_1 = [x + 1 for x in list(initial_model.labeling.get_states(targets))]
