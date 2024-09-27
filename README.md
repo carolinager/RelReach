@@ -16,3 +16,4 @@ TODO
 - [ ] Allow strict inequality (not "P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2})" though since none of the case studies need it)
 - [ ] Handling of more than 2 initial states?
 - [ ] specify stormpy dependency
+- [ ] return witness?
