@@ -2,14 +2,14 @@ import stormpy
 from relreach.utility import common
 
 class ModelChecker:
-    def __init__(self, model, targets):
+    def __init__(self, model, target):
         self.model = model
-        self.targets = targets  # object of property class
+        self.target = target  # object of property class
 
 
     def modelCheck(self):
-        target_a = self.targets + "_1"
-        target_b = self.targets + "_2"
+        target_a = self.target + "_1"
+        target_b = self.target + "_2"
 
         # calculate max {P(F a) - P(F b)}
         formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
@@ -22,9 +22,11 @@ class ModelChecker:
 
         # check whether max {P(F a) - P(F b)} <= 0
         if max_diff_lower > 0:
-            common.colourinfo("Not all schedulers match the probabilities since max {P(F a) - P(F b)} > 0")
+            common.colourerror("Not all schedulers match the probabilities since max {P(F " + self.target + ") - P(F " + self.target + ")} > 0")
+            return -1
         elif max_diff_upper > 0:
-            common.colourinfo("Result unknown. The lower bound for max {P(F a) - P(F b)} is <= 0 but the upper bound is > 0.")
+            common.colourerror("Result unknown. The lower bound for max {P(F " + self.target + ") - P(F " + self.target + ")} is <= 0 but the upper bound is > 0.")
+            return 0
         else:
             # calculate max {P(F b) - P(F a)} = - min {P(F a) - P(F b)}
             formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
@@ -37,12 +39,14 @@ class ModelChecker:
 
             # check whether min {P(F a) - P(F b)} >= 0
             if min_diff_upper < 0:
-                common.colourinfo("Not all schedulers match the probabilities since min {P(F a) - P(F b)} < 0")
+                common.colourerror("Not all schedulers match the probabilities since min {P(F " + self.target + ") - P(F " + self.target + ")} < 0")
+                return -1
             elif min_diff_lower < 0:
-                common.colourinfo("Result unknown. The upper bound for min {P(F a) - P(F b)} is >= 0 but the lower bound is < 0.")
+                common.colourerror("Result unknown. The upper bound for min {P(F " + self.target + ") - P(F " + self.target + ")} is >= 0 but the lower bound is < 0.")
+                return 0
             else:
-                print("All schedulers achieve P(F a) = P(F b)")
-
+                common.colourinfo("All schedulers achieve P(F " + self.target + ") = P(F " + self.target + ")")
+                return 1
 
         # # Checking for existence of a scheduler:
         # # scheduler can only exist if max {P(F a) - P(F b)} >= 0 and min {P(F a) - P(F b)} <= 0

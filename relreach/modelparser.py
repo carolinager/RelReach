@@ -6,7 +6,7 @@ from relreach.utility import common
 import itertools
 
 
-def buildUnfoldedModel(initial_model, targets):
+def buildUnfoldedModel(initial_model, target):
     builder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
                                                has_custom_row_grouping=True, row_groups=0)
     count_action = 0
@@ -21,8 +21,8 @@ def buildUnfoldedModel(initial_model, targets):
     init_2 = initial_states_2[0] + num_states + 1
 
     # identify target states in first and second copy
-    target_1 = [x + 1 for x in list(initial_model.labeling.get_states(targets))]
-    target_2 = [x + num_states + 1 for x in list(initial_model.labeling.get_states(targets))]
+    target_1 = [x + 1 for x in list(initial_model.labeling.get_states(target))]
+    target_2 = [x + num_states + 1 for x in list(initial_model.labeling.get_states(target))]
 
     # add new initial state
     builder.new_row_group(count_action)

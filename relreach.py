@@ -8,21 +8,24 @@ def main():
         input_args = parseArguments()
 
         model = Model(input_args.modelPath)
-        targets = input_args.target # (input_args.target1, input_args.target2)
+        targets = input_args.targets # (input_args.target1, input_args.target2)
 
         if input_args.checkModel:
             model.parseModel(False, targets)
         else:
-            model.parseModel(True, targets)
+            # todo can we do this more efficiently?
+            ## i.e., can we build the mdp once and make the targets absorbing only *afterwards*?
+            for target in targets:
+                model.parseModel(True, target)
 
-            modelchecker = ModelChecker(model, targets)
-            modelchecker.modelCheck()
+                modelchecker = ModelChecker(model, target)
+                res = modelchecker.modelCheck()
+                if res != 1:
+                    break
         print("\n")
 
     except Exception as err:
         common.colourerror("Unexpected error encountered: " + str(err))
-
-    print(model)
 
 
 if __name__ == "__main__":
