@@ -1,4 +1,4 @@
 wheel
 pycarl
-#stormpy==1.7.0
+#stormpy
 termcolor

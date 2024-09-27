@@ -16,7 +16,7 @@ def main():
             model.parseModel(True, targets)
 
             modelchecker = ModelChecker(model, targets)
-            modelchecker.modelCheck() # doesnt do anything so far, only contains comments on the multi-obkective properties we want to check 
+            modelchecker.modelCheck()
         print("\n")
 
     except Exception as err:

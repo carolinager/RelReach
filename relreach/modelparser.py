@@ -1,13 +1,13 @@
 import os
 import stormpy
-from pycarl.gmp.gmp import Rational
+#from pycarl.gmp.gmp import Rational
 from relreach.utility import common
 
 import itertools
 
 
 def buildUnfoldedModel(initial_model, targets):
-    builder = stormpy.ExactSparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+    builder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
                                                has_custom_row_grouping=True, row_groups=0)
     count_action = 0
     num_states = len(list(initial_model.states))
@@ -26,8 +26,8 @@ def buildUnfoldedModel(initial_model, targets):
 
     # add new initial state
     builder.new_row_group(count_action)
-    builder.add_next_value(count_action, init_1, Rational(0.5))
-    builder.add_next_value(count_action, init_2, Rational(0.5))
+    builder.add_next_value(count_action, init_1, 0.5)
+    builder.add_next_value(count_action, init_2, 0.5)
     count_action += 1
 
 
@@ -36,12 +36,12 @@ def buildUnfoldedModel(initial_model, targets):
         builder.new_row_group(count_action)
         # if target_1: make absorbing
         if state in target_1:
-            builder.add_next_value(count_action, state + 1, Rational(1))
+            builder.add_next_value(count_action, state + 1, 1)
             count_action += 1
         else:
             for action in state.actions:
                 for tran in action.transitions:
-                    va = Rational(tran.value())
+                    va = tran.value()
                     builder.add_next_value(count_action, tran.column + 1, va)
                 count_action += 1
 
@@ -50,18 +50,17 @@ def buildUnfoldedModel(initial_model, targets):
         builder.new_row_group(count_action)
         # if target_2: make absorbing
         if state in target_2:
-            builder.add_next_value(count_action, state + num_states + 1, Rational(1))
+            builder.add_next_value(count_action, state + num_states + 1,1)
             count_action += 1
         else:
             for action in state.actions:
                 for tran in action.transitions:
-                    va = Rational(tran.value())
+                    va = tran.value()
                     builder.add_next_value(count_action, tran.column + num_states + 1, va)
                 count_action += 1
 
     # build transition matrix
     transition_matrix = builder.build()
-    print(transition_matrix)
 
     # create new labeling
     state_labeling = stormpy.storage.StateLabeling(num_states * 2 + 1)
@@ -76,10 +75,10 @@ def buildUnfoldedModel(initial_model, targets):
             state_labeling.add_label_to_state(label + "_2", (int(state) + num_states + 1))
     # todo do we need to ensure initial_states[0] is labeled with init_1 (not init_2)? should be done automatically?
 
-    components = stormpy.SparseExactModelComponents(transition_matrix=transition_matrix,
+    components = stormpy.SparseModelComponents(transition_matrix=transition_matrix,
                                                     state_labeling=state_labeling)
 
-    mdp = stormpy.storage.SparseExactMdp(components)
+    mdp = stormpy.storage.SparseMdp(components)
     return mdp
 
 
@@ -96,8 +95,9 @@ class Model:
         try:
             if os.path.exists(self.model_path):
                 initial_prism_program = stormpy.parse_prism_program(self.model_path)
-                initial_model = stormpy.build_model(initial_prism_program)
-                self.parsed_model = buildUnfoldedModel(initial_model, targets)
+                initial_model_sparse = stormpy.build_sparse_model(initial_prism_program)
+                self.parsed_model = buildUnfoldedModel(initial_model_sparse, targets)
+
                 common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)))
                 if len(list(self.parsed_model.reward_models.keys())) != 0:
                     self.has_rewards = True
@@ -124,6 +124,7 @@ class Model:
 
                 common.colourinfo("Total number of actions: " + str(number_of_action), False)
                 common.colourinfo("Total number of transitions: " + str(number_of_transition), False)
+                print("\n")
             else:
                 common.colourother("Model file does not exist!")
         except IOError as e:
