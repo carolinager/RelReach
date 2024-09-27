@@ -12,6 +12,7 @@ Sample command: ```python3 relreach.py -modelPath ./benchmark/TL/tl.nm -targets 
 
 
 TODO
+- [ ] Test other benchmarks (adjust labels?)
 - [ ] Can we handle conjunction of P(F a_{s1}) = P(F a_{s2}) more efficiently? I.e., can we build MDP once and make states absorbing afterwards?
 - [ ] Allow strict inequality (not "P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2})" though since none of the case studies need it)
 - [ ] Handling of more than 2 initial states?
