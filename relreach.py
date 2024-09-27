@@ -9,6 +9,7 @@ def main():
 
         model = Model(input_args.modelPath)
         targets = input_args.targets # (input_args.target1, input_args.target2)
+        compOp = input_args.comparisonOperator
 
         if input_args.checkModel:
             model.parseModel(False, targets)
@@ -18,7 +19,7 @@ def main():
             for target in targets:
                 model.parseModel(True, target)
 
-                modelchecker = ModelChecker(model, target)
+                modelchecker = ModelChecker(model, target, compOp)
                 res = modelchecker.modelCheck()
                 if res != 1:
                     break
