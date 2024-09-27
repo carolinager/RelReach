@@ -12,6 +12,6 @@ Sample command: ```python3 relreach.py -modelPath ./benchmark/TL/tl.nm -target j
 
 
 TODO
-[ ] Allow conjunction of P(F a_{s1}) = P(F a_{s2})
-[ ] Allow strict inequality (P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2}) though since none of the case studies need it)
-[ ] Handling of more than 2 initial states?
+- [ ] Allow conjunction of P(F a_{s1}) = P(F a_{s2})
+- [ ] Allow strict inequality (P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2}) though since none of the case studies need it)
+- [ ] Handling of more than 2 initial states?
