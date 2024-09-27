@@ -1,14 +1,14 @@
 import os
 import stormpy
-from z3 import RealVal
+from pycarl.gmp.gmp import Rational
 from relreach.utility import common
 
 import itertools
 
 
 def buildUnfoldedModel(initial_model, targets):
-    file_str = ""
-    file_str += "builder = stormpy.ExactSparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False, has_custom_row_grouping=True, row_groups=0)\n"
+    builder = stormpy.ExactSparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                               has_custom_row_grouping=True, row_groups=0)
     count_action = 0
     num_states = len(list(initial_model.states))
 
@@ -25,65 +25,43 @@ def buildUnfoldedModel(initial_model, targets):
     target_2 = [x + num_states + 1 for x in list(initial_model.labeling.get_states(targets))]
 
     # add new initial state
-    file_str += "\nbuilder.new_row_group(" + str(count_action) + ")\n"
-    va = RealVal(0.5).as_fraction().limit_denominator(10000)
-    file_str += "builder.add_next_value(" + str(count_action) + ", "
-    file_str += str(init_1) + ", stormpy.Rational(" + str(
-        va.numerator) + ")/ stormpy.Rational(" + str(
-        va.denominator) + "))\n"
-    file_str += "builder.add_next_value(" + str(count_action) + ", "
-    file_str += str(init_2) + ", stormpy.Rational(" + str(
-        va.numerator) + ")/ stormpy.Rational(" + str(
-        va.denominator) + "))\n"
+    builder.new_row_group(count_action)
+    builder.add_next_value(count_action, init_1, Rational(0.5))
+    builder.add_next_value(count_action, init_2, Rational(0.5))
     count_action += 1
+
 
     # first copy
     for state in initial_model.states:
-        file_str += "\nbuilder.new_row_group(" + str(count_action) + ")\n"
+        builder.new_row_group(count_action)
         # if target_1: make absorbing
         if state in target_1:
-            va = RealVal(1).as_fraction().limit_denominator(10000)
-            file_str += "builder.add_next_value(" + str(count_action) + ", "
-            file_str += str(state + 1) + ", stormpy.Rational(" + str(
-                va.numerator) + ")/ stormpy.Rational(" + str(
-                va.denominator) + "))\n"
+            builder.add_next_value(count_action, state + 1, Rational(1))
             count_action += 1
         else:
             for action in state.actions:
                 for tran in action.transitions:
-                    va = RealVal(tran.value()).as_fraction().limit_denominator(10000)
-                    file_str += "builder.add_next_value(" + str(count_action) + ", "
-                    file_str += str(tran.column + 1) + ", stormpy.Rational(" + str(
-                        va.numerator) + ")/ stormpy.Rational(" + str(
-                        va.denominator) + "))\n"
+                    va = Rational(tran.value())
+                    builder.add_next_value(count_action, tran.column + 1, va)
                 count_action += 1
 
     # second copy
     for state in initial_model.states:
-        file_str += "\nbuilder.new_row_group(" + str(count_action) + ")\n"
+        builder.new_row_group(count_action)
         # if target_2: make absorbing
         if state in target_2:
-            va = RealVal(1).as_fraction().limit_denominator(10000)
-            file_str += "builder.add_next_value(" + str(count_action) + ", "
-            file_str += str(state + num_states + 1) + ", stormpy.Rational(" + str(
-                va.numerator) + ")/ stormpy.Rational(" + str(
-                va.denominator) + "))\n"
+            builder.add_next_value(count_action, state + num_states + 1, Rational(1))
             count_action += 1
         else:
             for action in state.actions:
                 for tran in action.transitions:
-                    va = RealVal(tran.value()).as_fraction().limit_denominator(10000)
-                    file_str += "builder.add_next_value(" + str(count_action) + ", "
-                    file_str += str(tran.column + num_states + 1) + ", stormpy.Rational(" + str(
-                        va.numerator) + ")/ stormpy.Rational(" + str(
-                        va.denominator) + "))\n"
+                    va = Rational(tran.value())
+                    builder.add_next_value(count_action, tran.column + num_states + 1, va)
                 count_action += 1
 
     # build transition matrix
-    file_str += "\ntransition_matrix = builder.build()\n"
-    loc = {}
-    exec(file_str, {"stormpy": stormpy}, loc)
-    transition_matrix = loc["transition_matrix"]
+    transition_matrix = builder.build()
+    print(transition_matrix)
 
     # create new labeling
     state_labeling = stormpy.storage.StateLabeling(num_states * 2 + 1)

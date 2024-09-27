@@ -1,4 +1,4 @@
-stormpy>=1.6.3
-lark-parser
-z3-solver==4.11.2
+wheel
+pycarl
+#stormpy==1.7.0
 termcolor
