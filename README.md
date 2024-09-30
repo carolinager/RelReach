@@ -14,13 +14,13 @@ We do so by transforming the problem to a (1\sigma1s) problem.
 
 Sample command: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --targets j0 j1 j2```
 
-Dependencies
+## Tested with:
 - storm 1.9.0
 - carl-storm 14.28
 - pycarl 2.3.0
 - stormpy fork: https://github.com/sjunges/stormpy/tree/relreach
 
-TODO
+## TODO
 - [ ] Test other benchmarks (adjust labels?)
 - [ ] Can we handle conjunction of P(F a_{s1}) = P(F a_{s2}) more efficiently? I.e., can we build MDP once and make states absorbing afterwards?
 - [x] Allow strict inequality (not "P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2})" though since none of the case studies need it)
