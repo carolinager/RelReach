@@ -14,6 +14,11 @@ We do so by transforming the problem to a (1\sigma1s) problem.
 
 Sample command: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --targets j0 j1 j2```
 
+Dependencies
+- storm 1.9.0
+- carl-storm 14.28
+- pycarl 2.3.0
+- stormpy fork: https://github.com/sjunges/stormpy/tree/relreach
 
 TODO
 - [ ] Test other benchmarks (adjust labels?)
