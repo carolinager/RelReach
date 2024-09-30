@@ -33,8 +33,8 @@ endmodule
 //init  (h=n)&(l=0) endinit
 init (l=0)&(f1=0)&(f2=0)&(h=n1)  endinit
 
-label "h1" = (h=n1)&(l=0);
-label "h2" = (h=n2)&(l=0);
+label "init1" = (h=n1)&(l=0);
+label "init2" = (h=n2)&(l=0);
 label "l_1" = l=1;
 label "l_2" = l=2;
 label "terminated_l1" = (f1=1);

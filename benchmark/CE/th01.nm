@@ -25,15 +25,13 @@ endmodule
 
 init (l=0)&(f1=0)&(f2=0)&(h=n1)  endinit
 
-label "h1" = (h=n1)&(l=0);
-label "h2" = (h=n2)&(l=0);
+label "init1" = (h=n1)&(l=0);
+label "init2" = (h=n2)&(l=0);
 label "l_1" = l=1;
 label "l_2" = l=2;
 label "terminated_l1" = (f1=1);
 label "terminated_l2" = (f2=1);
 label "terminated" = (f1=1)&(f2=1);
-label "terml1" = (f1=1)&(f2=1)&(l=1);
-label "terml2" = (f1=1)&(f2=1)&(l=2);
+label "terml1" = (f1=1)&(f2=1)&(l=1); // goal 1
+label "terml2" = (f1=1)&(f2=1)&(l=2); // goal 2
 
-
-// -modelPath ./benchmark/SSPOD/th01.nm -hyperString "ES sh . A s1 . A s2 . ET t1 (s1). ET t2 (s2) .  ( (h1(t1) & h2(t2)) -> (P(F terml1(t1)) = P(F terml1(t2))) )" -stutterLength 2

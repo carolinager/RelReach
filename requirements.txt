@@ -1,4 +1,4 @@
 wheel
-pycarl
-#stormpy
+pycarl==2.3.0
+stormpy @ git+https://github.com/sjunges/stormpy@relreach
 termcolor

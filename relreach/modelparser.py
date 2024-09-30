@@ -98,7 +98,8 @@ class Model:
                 initial_model_sparse = stormpy.build_sparse_model(initial_prism_program)
                 self.parsed_model = buildUnfoldedModel(initial_model_sparse, targets)
 
-                common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)))
+                common.colourinfo("Size of the *transformed* MDP: ")
+                common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)), False)
                 if len(list(self.parsed_model.reward_models.keys())) != 0:
                     self.has_rewards = True
                 number_of_action = 0

@@ -26,20 +26,20 @@ class ModelChecker:
             if self.compOp in ['=', '<=']:
                 # check whether max {P(F a) - P(F b)} <= 0
                 if max_diff_lower > 0:
-                    common.colourerror("Not all schedulers match the probabilities since max {P(F " + self.target + ") - P(F " + self.target + ")} > 0")
+                    common.colourerror("Property does not hold since max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} > 0")
                     return -1
                 elif max_diff_upper > 0:
-                    common.colourerror("Result unknown. The lower bound for max {P(F " + self.target + ") - P(F " + self.target + ")} is <= 0 but the upper bound is > 0.")
+                    common.colourerror("Result unknown. The lower bound for max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is <= 0 but the upper bound is > 0.")
                     return 0
             else: # compOp = '<'
                 # check whether max {P(F a) - P(F b)} < 0
                 if max_diff_lower >= 0:
                     common.colourerror(
-                        "Not all schedulers match the probabilities since max {P(F " + self.target + ") - P(F " + self.target + ")} >= 0")
+                        "Property does not hold since max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} >= 0")
                     return -1
                 elif max_diff_upper >= 0:
                     common.colourerror(
-                        "Result unknown. The lower bound for max {P(F " + self.target + ") - P(F " + self.target + ")} is < 0 but the upper bound is >= 0.")
+                        "Result unknown. The lower bound for max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is < 0 but the upper bound is >= 0.")
                     return 0
 
         # calculate max {P(F b) - P(F a)} = - min {P(F a) - P(F b)}
@@ -55,23 +55,23 @@ class ModelChecker:
             if self.compOp in ['=', '>=']:
                 # check whether min {P(F a) - P(F b)} >= 0
                 if min_diff_upper < 0:
-                    common.colourerror("Not all schedulers match the probabilities since min {P(F " + self.target + ") - P(F " + self.target + ")} < 0")
+                    common.colourerror("Property does not hold since min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} < 0")
                     return -1
                 elif min_diff_lower < 0:
-                    common.colourerror("Result unknown. The upper bound for min {P(F " + self.target + ") - P(F " + self.target + ")} is >= 0 but the lower bound is < 0.")
+                    common.colourerror("Result unknown. The upper bound for min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is >= 0 but the lower bound is < 0.")
                     return 0
             else: # compOp = '>'
                 # check whether min {P(F a) - P(F b)} > 0
                 if min_diff_upper <= 0:
                     common.colourerror(
-                        "Not all schedulers match the probabilities since min {P(F " + self.target + ") - P(F " + self.target + ")} <= 0")
+                        "Property does not hold since min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} <= 0")
                     return -1
                 elif min_diff_lower <= 0:
                     common.colourerror(
-                        "Result unknown. The upper bound for min {P(F " + self.target + ") - P(F " + self.target + ")} is > 0 but the lower bound is <= 0.")
+                        "Result unknown. The upper bound for min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is > 0 but the lower bound is <= 0.")
                     return 0
 
-        common.colourinfo("All schedulers achieve P(F " + self.target + ") = P(F " + self.target + ")")
+        common.colourinfo("All schedulers achieve P(F " + self.target + "_init1) " + self.compOp + " P(F " + self.target + "_init2)")
         return 1
 
         # # Checking for existence of a scheduler:
