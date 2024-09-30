@@ -26,9 +26,8 @@ We do so by transforming the problem to a (1\sigma1s) problem.
 - stormpy fork, relreach branch: https://github.com/sjunges/stormpy/tree/relreach (ensure it uses the correct storm version)
 
 ## TODO
-- [ ] Test other benchmarks (adjust labels?)
-- [ ] Can we handle conjunction of P(F a_{s1}) = P(F a_{s2}) more efficiently? I.e., can we build MDP once and make states absorbing afterwards?
-- [x] Allow strict inequality (not "P(F a_{s1}) = P(F a_{s2}) && P(F b_{s1}) > P(F b_{s2})" though since none of the case studies need it)
+- [ ] Test other benchmarks 
 - [ ] Handling of more than 2 initial states? (E.g. for TA with more than 1 bit for b?). Need to build MDP for each pair of initial states.
 - [ ] return witness (scheduler) in case the universal property does not hold?
-- [ ] benchmark which for which the result is "True"?
+- [ ] Make handling conjunction of P(F a_{s1}) = P(F a_{s2}) more efficient? I.e., can we build MDP once and make states absorbing afterwards? Add python binding for SparseMatrix::makeRowGroupsAbsorbing ?
+- [ ] benchmark for which the result is "True"?

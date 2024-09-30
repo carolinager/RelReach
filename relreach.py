@@ -3,6 +3,8 @@ from relreach.utility import common
 from relreach.modelparser import Model
 from relreach.modelchecker import ModelChecker
 
+import time
+
 def main():
     try:
         input_args = parseArguments()
@@ -11,6 +13,7 @@ def main():
         targets = input_args.targets # (input_args.target1, input_args.target2)
         compOp = input_args.comparisonOperator
 
+        start_time = time.perf_counter()
         if input_args.checkModel:
             model.parseModel(False, targets)
         else:
@@ -24,6 +27,8 @@ def main():
                 if res != 1:
                     break
         print("\n")
+        end_time = time.perf_counter()
+        common.colourinfo("Total time: " + str(round(end_time - start_time, 2)) + " seconds", False)
 
     except Exception as err:
         common.colourerror("Unexpected error encountered: " + str(err))
