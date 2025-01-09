@@ -106,6 +106,7 @@ def buildUnfoldedModel(initial_model, numScheds, numInit, targets):
         mdp = stormpy.storage.SparseMdp(components)
         return mdp, make_copies
     else:
+        # todo do I need to ensure that the targets are absorbing?
         # for state in initial_model.states:
         #     builder.new_row_group(count_action)
         #     # if target_1 or target_2: make absorbing
