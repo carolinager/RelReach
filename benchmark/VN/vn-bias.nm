@@ -1,0 +1,39 @@
+mdp
+
+const double l_bias = 0.59; // lower bound for bias towards 0
+const double u_bias = 0.61; // upper bound for bias towards 0
+
+module biased
+
+       s   : [0..4];      // local state
+       // 0: init
+       // 1: first bit is 0
+       // 2: first bit is 1
+       // 3: first two bits are 01
+       // 4: first two bits are 10
+
+       [] (s=0) -> l_bias : (s'=1) + (1-l_bias) : (s'=2);
+       [] (s=1) -> l_bias : (s'=0) + (1-l_bias) : (s'=3);
+       [] (s=2) -> l_bias : (s'=4) + (1-l_bias) : (s'=0);
+
+       [] (s=0) -> u_bias : (s'=1) + (1-u_bias) : (s'=2);
+       [] (s=1) -> u_bias : (s'=0) + (1-u_bias) : (s'=3);
+       [] (s=2) -> u_bias : (s'=4) + (1-u_bias) : (s'=0);
+
+       [] (s>=3) -> 1 : true ;         // loop forever
+
+endmodule
+
+init (s=0) endinit
+
+label "init1" = (s=0);
+label "init2" = (s=0);
+label "d01" = (s=3);
+label "d10" = (s=4);
+
+label "s0" = (s=0);
+label "s1" = (s=1);
+label "s2" = (s=2);
+label "s3" = (s=3);
+label "s4" = (s=4);
+
