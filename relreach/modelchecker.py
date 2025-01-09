@@ -2,16 +2,24 @@ import stormpy
 from relreach.utility import common
 
 class ModelChecker:
-    def __init__(self, model, target, compOp):
+    def __init__(self, model, make_copies, numScheds, numInit, targets, compOp, coeff):
+        self.make_copies = make_copies
         self.model = model
-        self.target = target  # object of property class
+        self.targets = targets  # object of property class
         self.compOp = compOp
+        self.coeff = coeff
 
     def modelCheck(self):
-        target_a = self.target + "_1"
-        target_b = self.target + "_2"
+        if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
+            target_a = self.targets[0] + "_1"
+            target_b = self.targets[1] + "_2"
+        else:
+            target_a = self.targets[0]
+            target_b = self.targets[1]
 
-        # todo adjust for other comparison operators
+        # todo adjust for approx comparison operators?
+        # todo add weights ?
+        bound = self.coeff # if we add coeff for the summands: self.coeff[2]
 
         # calculate max {P(F a) - P(F b)}
         if self.compOp in ['=', '<=', '<']:
@@ -20,26 +28,29 @@ class ModelChecker:
             env = stormpy.Environment()
             max_diff_lower_half, max_diff_upper_half = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
 
-            # results on original MDP: 2* results on transformed MDP
-            max_diff_lower, max_diff_upper = 2 * max_diff_lower_half, 2* max_diff_upper_half
+            # if we made copies: results on original MDP = 2* results on transformed MDP
+            if self.make_copies:
+                max_diff_lower, max_diff_upper = 2 * max_diff_lower_half, 2* max_diff_upper_half
+            else:
+                max_diff_lower, max_diff_upper = max_diff_lower_half, max_diff_upper_half
 
             if self.compOp in ['=', '<=']:
-                # check whether max {P(F a) - P(F b)} <= 0
-                if max_diff_lower > 0:
-                    common.colourerror("Property does not hold since max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} > 0")
+                # check whether max {P(F a) - P(F b)} <= bound
+                if max_diff_lower > bound:
+                    common.colourerror("Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} > " + str(bound))
                     return -1
-                elif max_diff_upper > 0:
-                    common.colourerror("Result unknown. The lower bound for max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is <= 0 but the upper bound is > 0.")
+                elif max_diff_upper > bound:
+                    common.colourerror("Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is <= " + str(bound) + " but the upper bound is > " + str(bound))
                     return 0
             else: # compOp = '<'
-                # check whether max {P(F a) - P(F b)} < 0
-                if max_diff_lower >= 0:
+                # check whether max {P(F a) - P(F b)} < bound
+                if max_diff_lower >= bound:
                     common.colourerror(
-                        "Property does not hold since max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} >= 0")
+                        "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} >= " + str(bound))
                     return -1
-                elif max_diff_upper >= 0:
+                elif max_diff_upper >= bound:
                     common.colourerror(
-                        "Result unknown. The lower bound for max {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is < 0 but the upper bound is >= 0.")
+                        "Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is < " + str(bound) + " but the upper bound is >= " + str(bound))
                     return 0
 
         # calculate max {P(F b) - P(F a)} = - min {P(F a) - P(F b)}
@@ -49,29 +60,45 @@ class ModelChecker:
             env = stormpy.Environment()
             neg_half_min_diff_lower, neg_half_min_diff_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
 
+            form_max_b = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"init1\"])"
+            properties_b = stormpy.parse_properties(form_max_b)
+            env_b = stormpy.Environment()
+            max_b = stormpy.compute_rel_reach_helper(env_b, self.model.parsed_model,
+                                                     properties_b[
+                                                         0].raw_formula)
+            form_min_a = "multi(Pmax=?  [F \"init1\"], Pmax=?  [F \"" + target_a + "\"])"
+            properties_minus_a = stormpy.parse_properties(form_min_a)
+            env_a = stormpy.Environment()
+            min_a = stormpy.compute_rel_reach_helper(env_a, self.model.parsed_model,
+                                                     properties_minus_a[
+                                                         0].raw_formula)
+
             # results on original MDP: 2* results on transformed MDP
-            min_diff_upper, min_diff_lower = - 2 * neg_half_min_diff_lower, - 2 * neg_half_min_diff_upper
+            if self.make_copies:
+                min_diff_upper, min_diff_lower = - 2 * neg_half_min_diff_lower, - 2 * neg_half_min_diff_upper
+            else:
+                min_diff_upper, min_diff_lower = - neg_half_min_diff_lower, - neg_half_min_diff_upper
 
             if self.compOp in ['=', '>=']:
-                # check whether min {P(F a) - P(F b)} >= 0
-                if min_diff_upper < 0:
-                    common.colourerror("Property does not hold since min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} < 0")
+                # check whether min {P(F a) - P(F b)} >= bound
+                if min_diff_upper < bound:
+                    common.colourerror("Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <" + str(bound))
                     return -1
-                elif min_diff_lower < 0:
-                    common.colourerror("Result unknown. The upper bound for min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is >= 0 but the lower bound is < 0.")
+                elif min_diff_lower < bound:
+                    common.colourerror("Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is >= " + str(bound) + " but the lower bound is < " + str(bound))
                     return 0
             else: # compOp = '>'
-                # check whether min {P(F a) - P(F b)} > 0
-                if min_diff_upper <= 0:
+                # check whether min {P(F a) - P(F b)} > bound
+                if min_diff_upper <= bound:
                     common.colourerror(
-                        "Property does not hold since min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} <= 0")
+                        "Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(bound))
                     return -1
-                elif min_diff_lower <= 0:
+                elif min_diff_lower <= bound:
                     common.colourerror(
-                        "Result unknown. The upper bound for min {P(F " + self.target + "_init1) - P(F " + self.target + "_init2)} is > 0 but the lower bound is <= 0.")
+                        "Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is > " + str(bound) + " but the lower bound is <= " + str(bound))
                     return 0
 
-        common.colourinfo("All schedulers achieve P(F " + self.target + "_init1) " + self.compOp + " P(F " + self.target + "_init2)")
+        common.colourinfo("All schedulers achieve P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")" + self.compOp + str(bound))
         return 1
 
         # # Checking for existence of a scheduler:
