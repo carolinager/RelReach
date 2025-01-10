@@ -60,19 +60,6 @@ class ModelChecker:
             env = stormpy.Environment()
             neg_half_min_diff_lower, neg_half_min_diff_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
 
-            form_max_b = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"init1\"])"
-            properties_b = stormpy.parse_properties(form_max_b)
-            env_b = stormpy.Environment()
-            max_b = stormpy.compute_rel_reach_helper(env_b, self.model.parsed_model,
-                                                     properties_b[
-                                                         0].raw_formula)
-            form_min_a = "multi(Pmax=?  [F \"init1\"], Pmax=?  [F \"" + target_a + "\"])"
-            properties_minus_a = stormpy.parse_properties(form_min_a)
-            env_a = stormpy.Environment()
-            min_a = stormpy.compute_rel_reach_helper(env_a, self.model.parsed_model,
-                                                     properties_minus_a[
-                                                         0].raw_formula)
-
             # results on original MDP: 2* results on transformed MDP
             if self.make_copies:
                 min_diff_upper, min_diff_lower = - 2 * neg_half_min_diff_lower, - 2 * neg_half_min_diff_upper

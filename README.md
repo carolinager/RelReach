@@ -26,10 +26,12 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
   - Returns "No" instantly for all models, also for ```- cop >=```
 
 ### Sample commands for (1\sigma1s) properties:
-- VN.1: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numScheds 1 --targets 01 10 --comparisonOperator <= --coefficient 0.2``` 
-  - todo
-- VN.2 ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numScheds 1 --targets 01 10 --comparisonOperator >= --coefficient -0.2```
-  - todo
+- VN.1: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numScheds 1 --targets d01 d10 --comparisonOperator <= --coefficient 0.05``` 
+  - Returns "Yes" in 0.04 seconds
+- VN.2 ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numScheds 1 --targets d01 d10 --comparisonOperator >= --coefficient -0.05```
+  - Returns "Yes" in 0.05 seconds
+- VN.1: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numScheds 1 --targets d01 d10 --comparisonOperator =``` 
+  - Returns "No" in 0.04 seconds
 
 ### sample commands for testing
 - (2sched2s) --modelPath ./benchmark/TL/tl.nm --numScheds 2 --targets j0 j0
