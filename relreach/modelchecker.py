@@ -26,13 +26,14 @@ class ModelChecker:
             formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
             properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
             env = stormpy.Environment()
-            max_diff_lower_half, max_diff_upper_half = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
+            env.solver_environment.set_force_sound()
+            res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
 
             # if we made copies: results on original MDP = 2* results on transformed MDP
             if self.make_copies:
-                max_diff_lower, max_diff_upper = 2 * max_diff_lower_half, 2* max_diff_upper_half
+                max_diff_lower, max_diff_upper = 2 * res_lower, 2* res_upper
             else:
-                max_diff_lower, max_diff_upper = max_diff_lower_half, max_diff_upper_half
+                max_diff_lower, max_diff_upper = res_lower, res_upper
 
             if self.compOp in ['=', '<=']:
                 # check whether max {P(F a) - P(F b)} <= bound
@@ -57,14 +58,15 @@ class ModelChecker:
         if self.compOp in ['=', '>=', '>']:
             formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
             properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
-            env = stormpy.Environment()
-            neg_half_min_diff_lower, neg_half_min_diff_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
+            env = stormpy.Environment() # standard precision is 0.000001
+            env.solver_environment.set_force_sound()
+            res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
 
             # results on original MDP: 2* results on transformed MDP
             if self.make_copies:
-                min_diff_upper, min_diff_lower = - 2 * neg_half_min_diff_lower, - 2 * neg_half_min_diff_upper
+                min_diff_upper, min_diff_lower = - 2 * res_lower, - 2 * res_upper
             else:
-                min_diff_upper, min_diff_lower = - neg_half_min_diff_lower, - neg_half_min_diff_upper
+                min_diff_upper, min_diff_lower = - res_lower, - res_upper
 
             if self.compOp in ['=', '>=']:
                 # check whether min {P(F a) - P(F b)} >= bound

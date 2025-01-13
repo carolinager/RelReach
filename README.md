@@ -22,7 +22,7 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 ### Sample commands for (2\sigma2s) properties:
 - TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
-- SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --targets target -cop >```
+- SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --numScheds 2 --targets target target -cop >```
   - Returns "No" instantly for all models, also for ```- cop >=```
 
 ### Sample commands for (1\sigma1s) properties:
