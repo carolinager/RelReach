@@ -11,6 +11,8 @@ class ModelChecker:
         self.compOp = compOp
         self.coeff = coeff
         self.exact = exact
+        if self.exact:
+            self.coeff = stormpy.Rational(self.coeff)
 
     def modelCheck(self):
         # if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
@@ -31,6 +33,7 @@ class ModelChecker:
             env = stormpy.Environment()
             env.solver_environment.set_force_sound()
             if self.exact:
+                env.solver_environment.set_force_exact()
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                 res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model,
