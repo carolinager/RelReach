@@ -6,34 +6,30 @@ from relreach.utility import common
 import itertools
 
 
-def buildUnfoldedModel(initial_model, numScheds, numInit, targets):
-    builder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
-                                               has_custom_row_grouping=True, row_groups=0)
+def buildUnfoldedModel(initial_model, numInit, targets, exact, make_copies, options):
+    if exact:
+        builder = stormpy.ExactSparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                                   has_custom_row_grouping=True, row_groups=0)
+    else:
+        builder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                              has_custom_row_grouping=True, row_groups=0)
+
     count_action = 0
     num_states = len(list(initial_model.states))
 
-    # identify original initial states
-    # initial_states = list()
-    # init = list()
-    # for i in range(1,numInit+1):
-    #     label = "init" + str(i)
-    #     initial_states_i = list(initial_model.labeling.get_states(label))
-    #     if len(initial_states_i) != 1:
-    #         raise ValueError("There is not exactly 1 state labeled " + label + ".")
-    #     if numScheds == 2: # then we will make two copies of the MDP
-    #         init_i = initial_states_i[0] + (i-1)*num_states + 1
-    #     else: # then we will not change the MDP
-    #         init_i = initial_states_i[0] + 1
-
-    initial_states_1 = list(initial_model.labeling.get_states("init1"))
-    initial_states_2 = list(initial_model.labeling.get_states("init2"))
+    if numInit == 1:
+        initial_states_1 = list(initial_model.labeling.get_states("init1"))
+        initial_states_2 = list(initial_model.labeling.get_states("init1"))
+    if numInit == 2:
+        initial_states_1 = list(initial_model.labeling.get_states("init1"))
+        initial_states_2 = list(initial_model.labeling.get_states("init2"))
     if len(initial_states_1) != 1 or len(initial_states_2) != 1:
         raise ValueError("The model does not have exactly 2 initial states.")
 
-    make_copies = False
-    if not (initial_states_1[0] == initial_states_2[0] and numScheds == 1):
-        # if we do not have 1 scheduler and 1 initial state, then we make 2 copies of the MDP
-        make_copies = True
+    # make_copies = False
+    # if not (initial_states_1[0] == initial_states_2[0] and numScheds == 1):
+    #    # if we do not have 1 scheduler and 1 initial state, then we make 2 copies of the MDP
+    #    make_copies = True
 
     # identify initial and target states depending on whether we make copies
     if make_copies:
@@ -49,6 +45,9 @@ def buildUnfoldedModel(initial_model, numScheds, numInit, targets):
 
 
     if make_copies:
+        # todo build exact sparse model
+        print("Warning: Didnt implement exact unfolding yet!")
+
         # add new initial state
         builder.new_row_group(count_action)
         builder.add_next_value(count_action, init_1, 0.5)
@@ -104,7 +103,7 @@ def buildUnfoldedModel(initial_model, numScheds, numInit, targets):
                                                         state_labeling=state_labeling)
 
         mdp = stormpy.storage.SparseMdp(components)
-        return mdp, make_copies
+        return mdp
     else:
         # todo do I need to ensure that the targets are absorbing?
         # for state in initial_model.states:
@@ -144,7 +143,7 @@ def buildUnfoldedModel(initial_model, numScheds, numInit, targets):
         #
         # return mdp, make_copies
 
-        return initial_model, make_copies
+        return initial_model
 
 
 class Model:
@@ -156,12 +155,15 @@ class Model:
         self.model_path = model_path
         self.parsed_model = None
 
-    def parseModel(self, extra_processing, numScheds, numInit, targets):
+    def parseModel(self, extra_processing, numInit, targets, exact, make_copies, options):
         try:
             if os.path.exists(self.model_path):
                 initial_prism_program = stormpy.parse_prism_program(self.model_path)
-                initial_model_sparse = stormpy.build_sparse_model(initial_prism_program)
-                self.parsed_model, make_copies = buildUnfoldedModel(initial_model_sparse, numScheds, numInit, targets)
+                if exact:
+                    initial_model_sparse = stormpy.build_sparse_exact_model_with_options(initial_prism_program, options)
+                else:
+                    initial_model_sparse = stormpy.build_sparse_model_with_options(initial_prism_program, options)
+                self.parsed_model = buildUnfoldedModel(initial_model_sparse, numInit, targets, exact, make_copies, options)
 
                 common.colourinfo("Size of the *possibly transformed* MDP: ")
                 common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)), False)
@@ -191,8 +193,6 @@ class Model:
                 common.colourinfo("Total number of actions: " + str(number_of_action), False)
                 common.colourinfo("Total number of transitions: " + str(number_of_transition), False)
                 print("\n")
-
-                return make_copies
             else:
                 common.colourother("Model file does not exist!")
         except IOError as e:
