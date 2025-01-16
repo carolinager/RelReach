@@ -7,7 +7,7 @@ Currently we expect
 - ```--targets```: list of target labels (one per initial state)
 
 Optional:
-- ```--comparisonOperator```: '=', '<', '>', '<=', '>='. Default is '='
+- ```--comparisonOperator```: '=', '<', '>', '<=', '>=', '!='. Default is '='
 - ```--coefficient```: rational number
 - ```--checkModel```: if flag is set: check if model file can be parsed (property is not being checked)
 - ```--exact```: if flag is set: do exact computation with Rationals in storm

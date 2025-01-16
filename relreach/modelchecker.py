@@ -15,21 +15,22 @@ class ModelChecker:
             self.coeff = stormpy.Rational(self.coeff)
 
     def modelCheck(self):
-        # if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
-        #     target_a = self.targets[0] + "_1"
-        #     target_b = self.targets[1] + "_2"
-        # else:
-        #     target_a = self.targets[0]
-        #     target_b = self.targets[1]
+        if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
+            target_a = self.targets[0] + "_1"
+            target_b = self.targets[1] + "_2"
+        else:
+            target_a = self.targets[0]
+            target_b = self.targets[1]
 
         # todo adjust for approx comparison operators?
         # todo add weights ?
         bound = self.coeff # if we add coeff for the summands: self.coeff[2]
 
         # calculate max {P(F a) - P(F b)}
-        if self.compOp in ['=', '<=', '<']:
-            #formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
-            #properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
+        # todo shouldnt we minimize a-b ??
+        if self.compOp in ['=', '<=', '<', '!=']:
+            formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
+            properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
             env = stormpy.Environment()
             # env.solver_environment.set_force_sound()
             if self.exact:
@@ -37,7 +38,7 @@ class ModelChecker:
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                 res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model,
-                                                                        self.properties[0].raw_formula)
+                                                                        self.properties_a_minus_b[0].raw_formula)
             else:
                 res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, self.properties[0].raw_formula)
 
@@ -55,7 +56,7 @@ class ModelChecker:
                 elif max_diff_upper > bound:
                     common.colourerror("Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is <= " + str(bound) + " but the upper bound is > " + str(bound))
                     return 0
-            else: # compOp = '<'
+            elif self.compOp in ['<']: # compOp = '<'
                 # check whether max {P(F a) - P(F b)} < bound
                 if max_diff_lower >= bound:
                     common.colourerror(
@@ -65,14 +66,19 @@ class ModelChecker:
                     common.colourerror(
                         "Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is < " + str(bound) + " but the upper bound is >= " + str(bound))
                     return 0
+            else:
+                #todo
+                print("todo")
 
-        # calculate max {P(F b) - P(F a)} = - min {P(F a) - P(F b)}
-        if self.compOp in ['=', '>=', '>']:
+        # calculate min {P(F a) - P(F b)} = - max {P(F b) - P(F a)}
+        if self.compOp in ['=', '>=', '>', '!=']:
+            # todo this needs to be adjusted !
             #formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
             #properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
             env = stormpy.Environment() # standard precision is 0.000001
-            env.solver_environment.set_force_sound()
+            #env.solver_environment.set_force_sound()
             if self.exact:
+                env.solver_environment.set_force_exact()
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                 res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model,
@@ -94,7 +100,7 @@ class ModelChecker:
                 elif min_diff_lower < bound:
                     common.colourerror("Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is >= " + str(bound) + " but the lower bound is < " + str(bound))
                     return 0
-            else: # compOp = '>'
+            elif self.compOp in ['>']: # compOp = '>'
                 # check whether min {P(F a) - P(F b)} > bound
                 if min_diff_upper <= bound:
                     common.colourerror(
@@ -104,6 +110,9 @@ class ModelChecker:
                     common.colourerror(
                         "Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is > " + str(bound) + " but the lower bound is <= " + str(bound))
                     return 0
+            else: # compOp = '!='
+                #todo
+                print("todo")
 
         common.colourinfo("All schedulers achieve P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")" + self.compOp + str(bound))
         return 1

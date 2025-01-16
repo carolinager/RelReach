@@ -35,7 +35,7 @@ def main():
             target_a = targets[0]
             target_b = targets[1]
 
-        if compOp in ['=', '<=', '<']:
+        if compOp in ['=', '<=', '<', '!=']:
             formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
             properties = stormpy.parse_properties(formula_a_minus_b)
         if compOp in ['=', '>=', '>']:
