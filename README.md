@@ -30,6 +30,10 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 - SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 2 --targets target target -cop >```
   - Returns "No" instantly for all models, also for ```- cop >=```
 
+### Sample commands for (1\sigma2s) properties:
+- TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --numInit 2 --numScheds 1 --targets j0 j0``` and same for ```j1``` and ```j2```
+  - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
+
 ### Sample commands for (1\sigma1s) properties:
 - VN.1a: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator <= --coefficient 0.05``` 
   - Returns "Yes" in 0.04 seconds

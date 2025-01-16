@@ -29,7 +29,7 @@ class ModelChecker:
             #formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
             #properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
             env = stormpy.Environment()
-            env.solver_environment.set_force_sound()
+            # env.solver_environment.set_force_sound()
             if self.exact:
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
