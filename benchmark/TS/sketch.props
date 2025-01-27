@@ -1,0 +1,4 @@
+ES sched 
+E s0(sched) E s1(sched) 
+Restrict s0 init1 Restrict s1 init2
+P{s0}[F "terml1"] < P{s1}[F "terml1"] || P{s1}[F "terml1"] < P{s0}[F "terml1"]

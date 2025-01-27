@@ -1,7 +1,7 @@
 mdp
 
-const int n1 = 5; //should be always greater than n2
-const int n2 = 0;
+const int n1 = 200; //should be always greater than n2
+const int n2 = 20;
 
 module thread_secret
 
@@ -23,7 +23,7 @@ module thread_secret
 
 endmodule
 
-init (l=0)&(f1=0)&(f2=0)&(h=n1)  endinit
+init (l=0)&(f1=0)&(f2=0)  endinit
 
 label "init1" = (h=n1)&(l=0);
 label "init2" = (h=n2)&(l=0);

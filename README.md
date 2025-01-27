@@ -16,19 +16,32 @@ If numInit=1 we assume the model has exactly one state labeled "init1".
 If numInit=2, we assume the model has exactly one state labeled "init1" and exactly one state labeled "init2".
 
 (1) If numScheds=2:
-We want to check whether for all pairs of schedulers, the probability of reaching target1 from the first initial state under the first scheduler relates to the probability of reaching target2 from the second initial state under the second scheduler as specified by the comparison operator.
+We want to check whether for all pairs of schedulers, 
+the probability of reaching target1 from the first initial state under the first scheduler 
+relates to the probability of reaching target2 from the second initial state under the second scheduler + coefficient
+as specified by the comparison operator.
 I.e., we check a (2\sigma2s) or a (2\sigma1s) property.
 
 (2) If numScheds=1:
-We want to check whether for all schedulers, the probability of reaching target1 from the first initial state relates to the probability of reaching target2 from the second initial state as specified by the comparison operator.
+We want to check whether for all schedulers, 
+the probability of reaching target1 from the first initial state 
+relates to the probability of reaching target2 from the second initial state + coefficient
+as specified by the comparison operator.
 I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 
 
 ### Sample commands for (2\sigma2s) properties:
-- TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
+- TL, m=2: ```python3 relreach.py --modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
-- SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 2 --targets target target -cop >```
+  - Analogously for the other variants (m=4,6,8) and all initial-state-combinations
+- SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --targets target target -cop >```
   - Returns "No" instantly for all models, also for ```- cop >=```
+  - Analogously for the other maze variants
+- TS ```--modelPath ./benchmark/TS/th0_1.nm --numInit 2 --numScheds 2 --targets terml1 terml1``` and same for ```terml2```
+  - Returns "No" instantly
+  - Analogously for the other variants
+- PW ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --targets counter0 counter0``` and same for the other values for counter
+  - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
 ### Sample commands for (1\sigma2s) properties:
 - TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --numInit 2 --numScheds 1 --targets j0 j0``` and same for ```j1``` and ```j2```
@@ -36,11 +49,11 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 
 ### Sample commands for (1\sigma1s) properties:
 - VN.1a: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator <= --coefficient 0.05``` 
-  - Returns "Yes" in 0.04 seconds
+  - Returns "Yes" instantly
 - VN.1b ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator >= --coefficient -0.05```
-  - Returns "Yes" in 0.05 seconds
+  - Returns "Yes" instantly
 - VN.2: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator =``` 
-  - Returns "No" in 0.04 seconds
+  - Returns "No" instantly
 
 ### sample commands for testing
 - (2sched2s) --modelPath ./benchmark/TL/tl.nm --numScheds 2 --targets j0 j0

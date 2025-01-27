@@ -26,9 +26,9 @@ class ModelChecker:
         # todo add weights ?
         bound = self.coeff # if we add coeff for the summands: self.coeff[2]
 
-        # calculate max {P(F a) - P(F b)}
-        # todo shouldnt we minimize a-b ??
         if self.compOp in ['=', '<=', '<', '!=']:
+        # "forall sched P(F a) - P(F b) < / <= bound" is violated iff "max {P(F a) - P(F b)} >= / > bound"
+        # calculate max {P(F a) - P(F b)}
             formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
             properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
             env = stormpy.Environment()
@@ -37,19 +37,18 @@ class ModelChecker:
                 env.solver_environment.set_force_exact()
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model,
-                                                                        self.properties_a_minus_b[0].raw_formula)
+                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
             else:
-                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, self.properties[0].raw_formula)
+                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
 
             # if we made copies: results on original MDP = 2* results on transformed MDP
             if self.make_copies:
-                max_diff_lower, max_diff_upper = 2 * res_lower, 2* res_upper
+                max_diff_lower, max_diff_upper = 2 * res_lower, 2 * res_upper
             else:
                 max_diff_lower, max_diff_upper = res_lower, res_upper
 
             if self.compOp in ['=', '<=']:
-                # check whether max {P(F a) - P(F b)} <= bound
+                # check whether max {P(F a) - P(F b)} >= bound
                 if max_diff_lower > bound:
                     common.colourerror("Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} > " + str(bound))
                     return -1
@@ -57,7 +56,7 @@ class ModelChecker:
                     common.colourerror("Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is <= " + str(bound) + " but the upper bound is > " + str(bound))
                     return 0
             elif self.compOp in ['<']: # compOp = '<'
-                # check whether max {P(F a) - P(F b)} < bound
+                # check whether max {P(F a) - P(F b)} > bound
                 if max_diff_lower >= bound:
                     common.colourerror(
                         "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} >= " + str(bound))
@@ -66,25 +65,25 @@ class ModelChecker:
                     common.colourerror(
                         "Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is < " + str(bound) + " but the upper bound is >= " + str(bound))
                     return 0
-            else:
+            else: # compOp = '!='
                 #todo
                 print("todo")
+                return 0
 
-        # calculate min {P(F a) - P(F b)} = - max {P(F b) - P(F a)}
         if self.compOp in ['=', '>=', '>', '!=']:
-            # todo this needs to be adjusted !
-            #formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
-            #properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
+        # "forall sched P(F a) - P(F b) > / >= bound" is violated iff "min {P(F a) - P(F b)} <= / < bound"
+        # calculate min {P(F a) - P(F b)} = - max {P(F b) - P(F a)}
+            formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
+            properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
             env = stormpy.Environment() # standard precision is 0.000001
             #env.solver_environment.set_force_sound()
             if self.exact:
                 env.solver_environment.set_force_exact()
                 env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                 env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model,
-                                                                        self.properties[0].raw_formula)
+                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
             else:
-                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, self.properties[0].raw_formula)
+                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
 
             # results on original MDP: 2* results on transformed MDP
             if self.make_copies:
@@ -93,7 +92,7 @@ class ModelChecker:
                 min_diff_upper, min_diff_lower = - res_lower, - res_upper
 
             if self.compOp in ['=', '>=']:
-                # check whether min {P(F a) - P(F b)} >= bound
+                # check whether min {P(F a) - P(F b)} <= bound
                 if min_diff_upper < bound:
                     common.colourerror("Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <" + str(bound))
                     return -1
@@ -101,7 +100,7 @@ class ModelChecker:
                     common.colourerror("Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is >= " + str(bound) + " but the lower bound is < " + str(bound))
                     return 0
             elif self.compOp in ['>']: # compOp = '>'
-                # check whether min {P(F a) - P(F b)} > bound
+                # check whether min {P(F a) - P(F b)} < bound
                 if min_diff_upper <= bound:
                     common.colourerror(
                         "Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(bound))
@@ -113,6 +112,7 @@ class ModelChecker:
             else: # compOp = '!='
                 #todo
                 print("todo")
+                return 0
 
         common.colourinfo("All schedulers achieve P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")" + self.compOp + str(bound))
         return 1

@@ -1,6 +1,6 @@
 mdp
 
-const int n = 1;
+const int n = 3;
 
 module basic
 
@@ -30,6 +30,10 @@ init  (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0) endinit
 
 label "init1" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=0);
 label "init2" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=1);
+label "init3" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=2);
+label "init4" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=3);
+label "init5" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=4);
+label "init6" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=5);
 // label "i" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0);
 // label "fin"  = (fin=1);
 label "loop" = (l=1);
@@ -38,3 +42,5 @@ label "j1" = (j=1)&(fin=1);
 label "j2" = (j=2)&(fin=1);
 label "j3" = (j=3)&(fin=1);
 label "j4" = (j=4)&(fin=1);
+label "j5" = (j=5)&(fin=1);
+label "j6" = (j=6)&(fin=1);

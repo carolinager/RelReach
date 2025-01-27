@@ -47,15 +47,20 @@ def main():
         options.set_build_state_valuations()
         options.set_build_all_labels()
 
+        common.colourinfo("Parsing model...")
         if input_args.checkModel:
             model.parseModel(False, numInit, targets, exact, make_copies, options)
         else:
             model.parseModel(True, numInit, targets, exact, make_copies, options)
+            parsing_time = time.perf_counter()
+            common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
+            common.colourinfo("Finished parsing model...", False)
             modelchecker = ModelChecker(model, make_copies, targets, properties, compOp, coeff, exact)
             res = modelchecker.modelCheck()
         print("\n")
         end_time = time.perf_counter()
+        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False)
         common.colourinfo("Total time: " + str(round(end_time - start_time, 2)) + " seconds", False)
 
     except Exception as err:
