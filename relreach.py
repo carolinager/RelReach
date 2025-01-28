@@ -29,35 +29,64 @@ def main():
             make_copies = True
 
         if make_copies: # then we look for the first target in the first copy and for the second one in the second copy
-            target_a = targets[0] + "_1"
-            target_b = targets[1] + "_2"
+            target_a = targets[0] # + "_1"
+            target_b = targets[1] # + "_2"
+
+            if compOp in ['=', '<=', '<', '!=']: # calc max for a and min for b
+                formula_a = "Pmax=? [F \"" + target_a + "\"]"
+                formula_b = "Pmin=? [F \"" + target_b + "\"]"
+            if compOp in ['=', '>=', '>', '!=']: # calc min for a and max for b
+                formula_a = "Pmin=? [F \"" + target_a + "\"]"
+                formula_b = "Pmax=? [F \"" + target_b + "\"]"
+
+            properties_a = stormpy.parse_properties(formula_a)
+            properties_b = stormpy.parse_properties(formula_b)
+
+            options_a = stormpy.BuilderOptions([p.raw_formula for p in properties_a])
+            options_a.set_build_state_valuations()
+            options_a.set_build_all_labels()
+
+            options_b = stormpy.BuilderOptions([p.raw_formula for p in properties_b])
+            options_b.set_build_state_valuations()
+            options_b.set_build_all_labels()
+
+            common.colourinfo("Parsing model...")
+            #todo: only init1 state should be initial state
+            parsed_model_a = model.parseModel(exact, options_a)
+            #todo only init2 state should be initial state
+            parsed_model_b = model.parseModel(exact, options_b)
+            parsing_time = time.perf_counter()
+            common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
+
+            if not input_args.checkModel:
+                modelchecker = ModelChecker([parsed_model_a, parsed_model_b], make_copies, targets, [properties_a, properties_b], compOp, coeff, exact)
+                res = modelchecker.modelCheck()
+
         else:
             target_a = targets[0]
             target_b = targets[1]
 
-        if compOp in ['=', '<=', '<', '!=']:
-            formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
-            properties = stormpy.parse_properties(formula_a_minus_b)
-        if compOp in ['=', '>=', '>']:
-            formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
-            properties = stormpy.parse_properties(formula_b_minus_a)
+            if compOp in ['=', '<=', '<', '!=']:
+                formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
+                properties = stormpy.parse_properties(formula_a_minus_b)
+            if compOp in ['=', '>=', '>']: # todo include != or exclude =
+                formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
+                properties = stormpy.parse_properties(formula_b_minus_a)
 
-        help = [p.raw_formula for p in properties]
-        options = stormpy.BuilderOptions([p.raw_formula for p in properties])
-        options.set_build_state_valuations()
-        options.set_build_all_labels()
+            options = stormpy.BuilderOptions([p.raw_formula for p in properties])
+            options.set_build_state_valuations()
+            options.set_build_all_labels()
 
-        common.colourinfo("Parsing model...")
-        if input_args.checkModel:
-            model.parseModel(False, numInit, targets, exact, make_copies, options)
-        else:
-            model.parseModel(True, numInit, targets, exact, make_copies, options)
+            # todo do I need to build the model twice, for both prop?
+            common.colourinfo("Parsing model...")
+            parsed_model = model.parseModel(exact, options)
             parsing_time = time.perf_counter()
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
-            common.colourinfo("Finished parsing model...", False)
-            modelchecker = ModelChecker(model, make_copies, targets, properties, compOp, coeff, exact)
-            res = modelchecker.modelCheck()
+            if not input_args.checkModel:
+                modelchecker = ModelChecker([parsed_model], make_copies, targets, [properties], compOp, coeff, exact)
+                res = modelchecker.modelCheck()
+
         print("\n")
         end_time = time.perf_counter()
         common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False)

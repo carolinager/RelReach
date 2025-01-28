@@ -3,11 +3,11 @@ from relreach.utility import common
 from pycarl.gmp.gmp import Rational
 
 class ModelChecker:
-    def __init__(self, model, make_copies, targets, properties, compOp, coeff, exact):
+    def __init__(self, model_list, make_copies, targets, property_list, compOp, coeff, exact):
         self.make_copies = make_copies
-        self.model = model
+        self.model_list = model_list
         self.targets = targets
-        self.properties = properties  # object of property class
+        self.property_list = property_list  # object of property class
         self.compOp = compOp
         self.coeff = coeff
         self.exact = exact
@@ -18,9 +18,19 @@ class ModelChecker:
         if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
             target_a = self.targets[0] + "_1"
             target_b = self.targets[1] + "_2"
+
+            model_a = self.model_list[0]
+            model_b = self.model_list[1]
+
+            properties_a = self.property_list[0]
+            properties_b = self.property_list[1]
         else:
             target_a = self.targets[0]
             target_b = self.targets[1]
+
+            model = self.model_list[0]
+
+            properties = self.property_list[0]
 
         # todo adjust for approx comparison operators?
         # todo add weights ?
@@ -29,22 +39,42 @@ class ModelChecker:
         if self.compOp in ['=', '<=', '<', '!=']:
         # "forall sched P(F a) - P(F b) < / <= bound" is violated iff "max {P(F a) - P(F b)} >= / > bound"
         # calculate max {P(F a) - P(F b)}
-            formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
-            properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
-            env = stormpy.Environment()
-            # env.solver_environment.set_force_sound()
-            if self.exact:
-                env.solver_environment.set_force_exact()
-                env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-                env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
-            else:
-                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_a_minus_b[0].raw_formula)
-
-            # if we made copies: results on original MDP = 2* results on transformed MDP
             if self.make_copies:
-                max_diff_lower, max_diff_upper = 2 * res_lower, 2 * res_upper
+                #env = stormpy.Environment()
+                # env.solver_environment.set_force_sound()
+                if self.exact:
+                    # todo does this work for exact?
+                    common.colourerror("exact not implemented")
+                    # env.solver_environment.set_force_exact()
+                    # env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+                    # env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+                    # max_a_under, max_a_over = stormpy.model_checking(env, model_a, properties_a[0].raw_formula)
+                    # min_b_under, min_b_over = stormpy.model_checking(env, model_b, properties_b[0].raw_formula)
+                else:
+                    # todo is this actually approximative?
+                    initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True)
+                    max_a = (res_a.at(initial_state_1))
+
+                    initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True)
+                    min_b = (res_b.at(initial_state_2))
+
+                max_diff_lower, max_diff_upper = max_a - min_b, max_a - min_b
+
             else:
+                formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
+                properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
+                env = stormpy.Environment()
+                # env.solver_environment.set_force_sound()
+                if self.exact:
+                    env.solver_environment.set_force_exact()
+                    env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+                    env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+                    res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, model, properties_a_minus_b[0].raw_formula)
+                else:
+                    res_lower, res_upper = stormpy.compute_rel_reach_helper(env, model, properties_a_minus_b[0].raw_formula)
+
                 max_diff_lower, max_diff_upper = res_lower, res_upper
 
             if self.compOp in ['=', '<=']:
@@ -73,23 +103,36 @@ class ModelChecker:
         if self.compOp in ['=', '>=', '>', '!=']:
         # "forall sched P(F a) - P(F b) > / >= bound" is violated iff "min {P(F a) - P(F b)} <= / < bound"
         # calculate min {P(F a) - P(F b)} = - max {P(F b) - P(F a)}
-            formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
-            properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
-            env = stormpy.Environment() # standard precision is 0.000001
-            #env.solver_environment.set_force_sound()
-            if self.exact:
-                env.solver_environment.set_force_exact()
-                env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-                env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
+            if self.make_copies:
+                if self.exact:
+                    common.colourerror("exact not implemented")
+                else:
+                    # todo is this actually approximative?
+                    initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True)
+                    min_a = (res_a.at(initial_state_1))
+
+                    initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True)
+                    max_b = (res_b.at(initial_state_2))
+
+                min_diff_upper, min_diff_lower = min_a - max_b, min_a - max_b
+
             else:
-                res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model.parsed_model, properties_b_minus_a[0].raw_formula)
+                formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
+                properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
+                env = stormpy.Environment() # standard precision is 0.000001
+                #env.solver_environment.set_force_sound()
+                if self.exact:
+                    env.solver_environment.set_force_exact()
+                    env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+                    env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+                    res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, model, properties_b_minus_a[0].raw_formula)
+                else:
+                    res_lower, res_upper = stormpy.compute_rel_reach_helper(env, model, properties_b_minus_a[0].raw_formula)
 
             # results on original MDP: 2* results on transformed MDP
-            if self.make_copies:
-                min_diff_upper, min_diff_lower = - 2 * res_lower, - 2 * res_upper
-            else:
-                min_diff_upper, min_diff_lower = - res_lower, - res_upper
+                min_diff_upper, min_diff_lower = - res_lower, - res_upper # note reserval of lower + upper!
 
             if self.compOp in ['=', '>=']:
                 # check whether min {P(F a) - P(F b)} <= bound
