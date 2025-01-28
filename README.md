@@ -43,6 +43,12 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 - PW ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --targets counter0 counter0``` and same for the other values for counter
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
+### Sample commands for (2\sigma1s) properties:
+- RT: ```python3 relreach.py --modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target```
+  - Returns "Yes" instantly
+- RT_w: ```python3 relreach.py --modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --targets target target```
+  - Returns "No" instantly
+
 ### Sample commands for (1\sigma2s) properties:
 - TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl.nm --numInit 2 --numScheds 1 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
