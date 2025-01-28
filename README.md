@@ -54,12 +54,13 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
   - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
 
 ### Sample commands for (1\sigma1s) properties:
-- VN.1a: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator <= --coefficient 0.05``` 
+- VN.1a: ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator <= --coefficient 0.05``` 
   - Returns "Yes" instantly
-- VN.1b ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator >= --coefficient -0.05```
+- VN.1b ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator >= --coefficient -0.05```
   - Returns "Yes" instantly
-- VN.2: ```python3 relreach.py --modelPath ./benchmark/VN/vn-bias.nm --numInit 1 --numScheds 1 --targets d01 d10 --comparisonOperator =``` 
+- VN.2: ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =``` 
   - Returns "No" instantly
+- VN_gen ```--modelPath ./benchmark/VN/vn-gen_10.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =```
 
 ### sample commands for testing
 - (2sched2s) --modelPath ./benchmark/TL/tl.nm --numScheds 2 --targets j0 j0
