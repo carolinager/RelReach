@@ -165,33 +165,33 @@ class Model:
                     initial_model_sparse = stormpy.build_sparse_model_with_options(initial_prism_program, options)
                 self.parsed_model = buildUnfoldedModel(initial_model_sparse, numInit, targets, exact, make_copies, options)
 
-                common.colourinfo("Size of the *possibly transformed* MDP: ")
-                common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)), False)
-                if len(list(self.parsed_model.reward_models.keys())) != 0:
-                    self.has_rewards = True
-                number_of_action = 0
-                number_of_transition = 0
-                if not extra_processing:
-                    for state in self.parsed_model.states:
-                        for action in state.actions:
-                            number_of_action += 1
-                            number_of_transition += len(action.transitions)
-                else:
-                    for state in self.parsed_model.states:
-                        self.list_of_states.append(state.id)
-                        list_of_act = []
-                        for action in state.actions:
-                            number_of_action += 1
-                            list_of_tran = []
-                            list_of_act.append(action.id)
-                            number_of_transition += len(action.transitions)
-                            for tran in action.transitions:
-                                list_of_tran.append(str(tran.column) + ' ' + str(tran.value()))
-                            self.dict_of_acts_tran[str(state.id) + ' ' + str(action.id)] = list_of_tran
-                        self.dict_of_acts[state.id] = list_of_act
-
-                common.colourinfo("Total number of actions: " + str(number_of_action), False)
-                common.colourinfo("Total number of transitions: " + str(number_of_transition), False)
+                # common.colourinfo("Size of the *possibly transformed* MDP: ")
+                # common.colourinfo("Total number of states: " + str(len(self.parsed_model.states)), False)
+                # if len(list(self.parsed_model.reward_models.keys())) != 0:
+                #     self.has_rewards = True
+                # number_of_action = 0
+                # number_of_transition = 0
+                # if not extra_processing:
+                #     for state in self.parsed_model.states:
+                #         for action in state.actions:
+                #             number_of_action += 1
+                #             number_of_transition += len(action.transitions)
+                # else:
+                #     for state in self.parsed_model.states:
+                #         self.list_of_states.append(state.id)
+                #         list_of_act = []
+                #         for action in state.actions:
+                #             number_of_action += 1
+                #             list_of_tran = []
+                #             list_of_act.append(action.id)
+                #             number_of_transition += len(action.transitions)
+                #             for tran in action.transitions:
+                #                 list_of_tran.append(str(tran.column) + ' ' + str(tran.value()))
+                #             self.dict_of_acts_tran[str(state.id) + ' ' + str(action.id)] = list_of_tran
+                #         self.dict_of_acts[state.id] = list_of_act
+                #
+                # common.colourinfo("Total number of actions: " + str(number_of_action), False)
+                # common.colourinfo("Total number of transitions: " + str(number_of_transition), False)
                 print("\n")
             else:
                 common.colourother("Model file does not exist!")
