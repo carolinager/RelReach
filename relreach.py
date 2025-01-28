@@ -50,12 +50,15 @@ def main():
             options_b.set_build_state_valuations()
             options_b.set_build_all_labels()
 
+            # todo: is it really necessary to parse twice / with respective options?
             common.colourinfo("Parsing model...")
             #todo: only init1 state should be initial state
             parsed_model_a = model.parseModel(exact, options_a)
             #todo only init2 state should be initial state
             parsed_model_b = model.parseModel(exact, options_b)
             parsing_time = time.perf_counter()
+            common.colourinfo("Number of states: {0}".format(parsed_model_a.nr_states))
+            common.colourinfo("Number of transitions: {0}".format(parsed_model_a.nr_transitions))
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
             if not input_args.checkModel:
@@ -81,15 +84,16 @@ def main():
             common.colourinfo("Parsing model...")
             parsed_model = model.parseModel(exact, options)
             parsing_time = time.perf_counter()
+            common.colourinfo("Number of states: {0}".format(parsed_model.nr_states), False)
+            common.colourinfo("Number of transitions: {0}".format(parsed_model.nr_transitions), False)
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
             if not input_args.checkModel:
                 modelchecker = ModelChecker([parsed_model], make_copies, targets, [properties], compOp, coeff, exact)
                 res = modelchecker.modelCheck()
 
-        print("\n")
         end_time = time.perf_counter()
-        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False)
+        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", True)
         common.colourinfo("Total time: " + str(round(end_time - start_time, 2)) + " seconds", False)
 
     except Exception as err:

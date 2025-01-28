@@ -22,8 +22,7 @@ class Model:
                     initial_model_sparse = stormpy.build_sparse_exact_model_with_options(initial_prism_program, options)
                 else:
                     initial_model_sparse = stormpy.build_sparse_model_with_options(initial_prism_program, options)
-                common.colourinfo("Model created from " + self.model_path + " with options")
-
+                #common.colourinfo("Model created from " + self.model_path + " with options")
                 return initial_model_sparse
             else:
                 common.colourother("Model file does not exist!")
