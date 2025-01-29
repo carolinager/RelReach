@@ -32,37 +32,41 @@ class ModelChecker:
 
             properties = self.property_list[0]
 
-        # todo adjust for approx comparison operators?
-        # todo add weights ?
         bound = self.coeff # if we add coeff for the summands: self.coeff[2]
 
         if self.compOp in ['=', '<=', '<', '!=']:
         # "forall sched P(F a) - P(F b) < / <= bound" is violated iff "max {P(F a) - P(F b)} >= / > bound"
         # calculate max {P(F a) - P(F b)}
             if self.make_copies:
-                #env = stormpy.Environment()
-                # env.solver_environment.set_force_sound()
+                env = stormpy.Environment()
                 if self.exact:
-                    # todo does this work for exact?
                     common.colourerror("exact not implemented")
-                    # env.solver_environment.set_force_exact()
-                    # env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-                    # env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    # max_a_under, max_a_over = stormpy.model_checking(env, model_a, properties_a[0].raw_formula)
-                    # min_b_under, min_b_over = stormpy.model_checking(env, model_b, properties_b[0].raw_formula)
-                else:
-                    # todo is this actually approximative?
+                    env.solver_environment.set_force_exact() # Unexpected error encountered: 'stormpy.core.SolverEnvironment' object has no attribute 'set_force_exact'
+                    env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+                    env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
+
+                    max_diff_lower, max_diff_upper = res_a - res_a, res_a - res_b
+                else: # make_copies, not exact
+                    # todo to retain a tolerance of 10^-6 we should use 10^-3 for model_checking though?
+                    env.solver_environment.set_force_sound()
                     initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
-                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True)
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     max_a = (res_a.at(initial_state_1))
+                    # to remain sound we need to acknowledge that this is only an approximative result
+                    max_a_under = max_a - 0.000001
+                    max_a_over = max_a + 0.000001
 
                     initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
-                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True)
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
                     min_b = (res_b.at(initial_state_2))
+                    min_b_under = min_b - 0.000001
+                    min_b_over = min_b + 0.000001
 
-                max_diff_lower, max_diff_upper = max_a - min_b, max_a - min_b
+                    max_diff_lower, max_diff_upper = max_a_under - min_b_over, max_a_over - min_b_under
 
-            else:
+            else: # not make_copies
                 formula_a_minus_b = "multi(Pmax=?  [F \"" + target_a + "\"], Pmax=?  [F \"" + target_b + "\"])"
                 properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
                 env = stormpy.Environment()
@@ -104,21 +108,36 @@ class ModelChecker:
         # "forall sched P(F a) - P(F b) > / >= bound" is violated iff "min {P(F a) - P(F b)} <= / < bound"
         # calculate min {P(F a) - P(F b)} = - max {P(F b) - P(F a)}
             if self.make_copies:
+                env = stormpy.Environment()
                 if self.exact:
                     common.colourerror("exact not implemented")
-                else:
-                    # todo is this actually approximative?
+                    env.solver_environment.set_force_exact()  # Unexpected error encountered: 'stormpy.core.SolverEnvironment' object has no attribute 'set_force_exact'
+                    env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+                    env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True,
+                                                   environment=env)
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True,
+                                                   environment=env)
+
+                    min_diff_lower, min_diff_upper = res_a - res_b, res_a - res_b
+                else: # make_copies, not exact
+                    # todo to retain a tolerance of 10^-6 we should use 10^-3 for model_checking though?
+                    env.solver_environment.set_force_sound()
                     initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
-                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True)
+                    res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     min_a = (res_a.at(initial_state_1))
+                    min_a_under = min_a - 0.000001
+                    min_a_over = min_a + 0.000001
 
                     initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
-                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True)
+                    res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
                     max_b = (res_b.at(initial_state_2))
+                    max_b_under = max_b - 0.000001
+                    max_b_over = max_b + 0.000001
 
-                min_diff_upper, min_diff_lower = min_a - max_b, min_a - max_b
+                    min_diff_upper, min_diff_lower = min_a_under - max_b_over, min_a_over - max_b_under
 
-            else:
+            else: # not make_copies
                 formula_b_minus_a = "multi(Pmax=?  [F \"" + target_b + "\"], Pmax=?  [F \"" + target_a + "\"])"
                 properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
                 env = stormpy.Environment() # standard precision is 0.000001
@@ -132,7 +151,7 @@ class ModelChecker:
                     res_lower, res_upper = stormpy.compute_rel_reach_helper(env, model, properties_b_minus_a[0].raw_formula)
 
             # results on original MDP: 2* results on transformed MDP
-                min_diff_upper, min_diff_lower = - res_lower, - res_upper # note reserval of lower + upper!
+                min_diff_lower, min_diff_upper = - res_upper, - res_lower # note reserval of lower + upper!
 
             if self.compOp in ['=', '>=']:
                 # check whether min {P(F a) - P(F b)} <= bound

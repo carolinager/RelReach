@@ -45,7 +45,7 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 
 ### Sample commands for (2\sigma1s) properties:
 - RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target```
-  - Returns "Yes" instantly
+  - Returns "Unknown" instantly
 - RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --targets target target```
   - Returns "No" instantly
 
