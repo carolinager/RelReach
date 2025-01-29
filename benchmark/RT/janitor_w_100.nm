@@ -4,7 +4,7 @@
 mdp
 
 // CONSTANTS
-const int n = 10; // size of the grid
+const int n = 100; // size of the grid
 
 // the following formulae return 1 or 0 depending on whether
 // the janitor can move in that direction or not
