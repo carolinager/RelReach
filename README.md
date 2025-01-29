@@ -31,10 +31,10 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 
 
 ### Sample commands for (2\sigma2s) properties:
-- TL, m=2: ```python3 relreach.py --modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
+- TL, m=2: ```--modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
   - Analogously for the other variants (m=4,6,8) and all initial-state-combinations
-- SD: ```python3 relreach.py --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --targets target target -cop >```
+- SD: ```--modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --targets target target -cop >```
   - Returns "No" instantly for all models, also for ```- cop >=```
   - Analogously for the other maze variants
 - TS ```--modelPath ./benchmark/TS/th0_1.nm --numInit 2 --numScheds 2 --targets terml1 terml1``` and same for ```terml2```
@@ -44,21 +44,21 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
 ### Sample commands for (2\sigma1s) properties:
-- RT: ```python3 relreach.py --modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target```
+- RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target```
   - Returns "Yes" instantly
-- RT_w: ```python3 relreach.py --modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --targets target target```
+- RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --targets target target```
   - Returns "No" instantly
 
 ### Sample commands for (1\sigma2s) properties:
-- TL: ```python3 relreach.py --modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 1 --targets j0 j0``` and same for ```j1``` and ```j2```
+- TL: ```--modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 1 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
 
 ### Sample commands for (1\sigma1s) properties:
-- VN.1a: ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator <= --coefficient 0.05``` 
+- VN.1a: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator <= --coefficient 0.05``` 
   - Returns "Yes" instantly
-- VN.1b ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator >= --coefficient -0.05```
+- VN.1b ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator >= --coefficient -0.05```
   - Returns "Yes" instantly
-- VN.2: ```python3 relreach.py --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =``` 
+- VN.2: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =``` 
   - Returns "No" instantly
 - VN_gen ```--modelPath ./benchmark/VN/vn-gen_10.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =```
 

@@ -50,19 +50,20 @@ def main():
             options_b.set_build_state_valuations()
             options_b.set_build_all_labels()
 
-            # todo: is it really necessary to parse twice / with respective options?
             common.colourinfo("Parsing model...")
+            parsed_model = model.parseModel(exact, options_a)
+            # todo: Clean this up, parsing wrt to one of the formulas but with all labels isnt very clean
             #todo: only init1 state should be initial state
-            parsed_model_a = model.parseModel(exact, options_a)
+            # parsed_model_a = model.parseModel(exact, options_a)
             #todo only init2 state should be initial state
-            parsed_model_b = model.parseModel(exact, options_b)
+            # parsed_model_b = model.parseModel(exact, options_b)
             parsing_time = time.perf_counter()
-            common.colourinfo("Number of states: {0}".format(parsed_model_a.nr_states))
-            common.colourinfo("Number of transitions: {0}".format(parsed_model_a.nr_transitions))
+            common.colourinfo("Number of states: {0}".format(parsed_model.nr_states))
+            common.colourinfo("Number of transitions: {0}".format(parsed_model.nr_transitions))
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
             if not input_args.checkModel:
-                modelchecker = ModelChecker([parsed_model_a, parsed_model_b], make_copies, targets, [properties_a, properties_b], compOp, coeff, exact)
+                modelchecker = ModelChecker([parsed_model, parsed_model], make_copies, targets, [properties_a, properties_b], compOp, coeff, exact)
                 res = modelchecker.modelCheck()
 
         else:
