@@ -60,7 +60,6 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
   - Returns "Yes" instantly
 - VN.2: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =``` 
   - Returns "No" instantly
-- VN_gen ```--modelPath ./benchmark/VN/vn-gen_10.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =```
 
 ### sample commands for testing
 - (2sched2s) --modelPath ./benchmark/TL/tl.nm --numScheds 2 --targets j0 j0

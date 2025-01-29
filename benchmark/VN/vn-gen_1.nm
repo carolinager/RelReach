@@ -12,13 +12,22 @@ module main
     done : bool init false; // helper variable to indicate termination
 
     [l] (bits=0)&(!done)             -> bias_l : (bits'= bits+1)&(zeros'=zeros+1)&(first'=0) + (1-bias_l) : (bits'=bits+1)&(first'=1);
-    [l] (0<bits)&(bits< 2*N)&(!done) -> bias_l : (bits' = bits+1) & (zeros' = zeros+1)  + (1-bias_l) : (bits' = bits+1);
+    [l] (0<bits)&(bits< 2*N-1)&(!done) -> bias_l : (bits' = bits+1) & (zeros' = zeros+1)  + (1-bias_l) : (bits' = bits+1);
 
     [u] (bits =0 & !done) -> bias_u : (bits' = bits+1) & (zeros' = zeros+1) & (first'=0) + (1-bias_u) : (bits' = bits+1) & (first'=1);
-    [u] (0 < bits & bits < 2*N & !done) -> bias_u : (bits' = bits+1) & (zeros' = zeros+1)  + (1-bias_u) : (bits' = bits+1);
+    [u] (0 < bits & bits < 2*N-1 & !done) -> bias_u : (bits' = bits+1) & (zeros' = zeros+1)  + (1-bias_u) : (bits' = bits+1);
+	
+    // if num zeros != num ones: try again and reset all variable values. Otherwise: done, output first
+    [l] (bits = 2*N-1 & zeros = N-1 & !done) -> bias_l : (bits' = bits+1) & (zeros' = zeros+1)&(done'=true) + (1-bias_l) : (bits'=0) & (zeros'=0)&(first'=0); 
+    [u] (bits = 2*N-1 & zeros = N-1 & !done) -> bias_u : (bits' = bits+1) & (zeros' = zeros+1)&(done'=true) + (1-bias_u) : (bits'=0) & (zeros'=0)&(first'=0); 
 
-    [] (bits = 2*N & zeros = N & !done) -> (done'=true);
-    [] (bits = 2*N & zeros != N & !done) -> (bits'=0) & (zeros'=0); // num zeros != num ones --> try again
+    [l] (bits = 2*N-1 & zeros = N & !done) -> bias_l : (bits'=0) & (zeros'=0)&(first'=0) + (1-bias_l) : (bits' = bits+1)&(done'=true); 
+    [u] (bits = 2*N-1 & zeros = N & !done) -> bias_u : (bits'=0) & (zeros'=0)&(first'=0) + (1-bias_u) : (bits' = bits+1)&(done'=true); 
+
+    [l] (bits = 2*N-1) & (zeros != N-1)& (zeros != N) & (!done) -> (bits'=0) & (zeros'=0)&(first'=0); 
+
+  //  [] (bits = 2*N & zeros = N & !done) -> 1 : (done'=true);
+  //  [] (bits = 2*N & zeros != N & !done) -> 1 : (bits'=0) & (zeros'=0)&(first'=0); // num zeros != num ones --> try again
 endmodule
 
 label "init1" = (bits=0)&(zeros=0)&(done=false)&(first=0);
