@@ -17,10 +17,18 @@ def main():
         coeff = input_args.coefficient
         compOp = input_args.comparisonOperator
         exact = input_args.exact
+        if compOp in ['=']:
+            epsilon = input_args.epsilon
+        else:
+            if not (input_args.epsilon == 0):
+                common.colourerror("Approximate comparison is only supported for =. Will treat epsilon as 0.")
+                epsilon = 0
 
         # 2 probability operators / summands / init labels expected. this is NOT the same as the number of distinct initial states present in the model
 
         start_time = time.perf_counter()
+
+
 
         make_copies = False
         x = numInit == 1 and numScheds == 1
@@ -63,7 +71,7 @@ def main():
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
             if not input_args.checkModel:
-                modelchecker = ModelChecker([parsed_model, parsed_model], make_copies, targets, [properties_a, properties_b], compOp, coeff, exact)
+                modelchecker = ModelChecker([parsed_model, parsed_model], make_copies, targets, [properties_a, properties_b], compOp, coeff, exact, epsilon)
                 res = modelchecker.modelCheck()
 
         else:
@@ -90,7 +98,7 @@ def main():
             common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
             if not input_args.checkModel:
-                modelchecker = ModelChecker([parsed_model], make_copies, targets, [properties], compOp, coeff, exact)
+                modelchecker = ModelChecker([parsed_model], make_copies, targets, [properties], compOp, coeff, exact, epsilon)
                 res = modelchecker.modelCheck()
 
         end_time = time.perf_counter()

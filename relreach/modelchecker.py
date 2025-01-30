@@ -3,7 +3,7 @@ from relreach.utility import common
 from pycarl.gmp.gmp import Rational
 
 class ModelChecker:
-    def __init__(self, model_list, make_copies, targets, property_list, compOp, coeff, exact):
+    def __init__(self, model_list, make_copies, targets, property_list, compOp, coeff, exact, epsilon):
         self.make_copies = make_copies
         self.model_list = model_list
         self.targets = targets
@@ -13,6 +13,7 @@ class ModelChecker:
         self.exact = exact
         if self.exact:
             self.coeff = stormpy.Rational(self.coeff)
+        self.epsilon = epsilon
 
     def modelCheck(self):
         if self.make_copies: # then we look for the first target in the first copy and for the second one in the second copy
@@ -82,12 +83,13 @@ class ModelChecker:
                 max_diff_lower, max_diff_upper = res_lower, res_upper
 
             if self.compOp in ['=', '<=']:
-                # check whether max {P(F a) - P(F b)} >= bound
-                if max_diff_lower > bound:
-                    common.colourerror("Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} > " + str(bound))
+                # check whether max {P(F a) - P(F b)} >= bound - epsilon
+                bound_x = bound + self.epsilon
+                if max_diff_lower > bound_x:
+                    common.colourerror("Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} > " + str(bound_x))
                     return -1
-                elif max_diff_upper > bound:
-                    common.colourerror("Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is <= " + str(bound) + " but the upper bound is > " + str(bound))
+                elif max_diff_upper > bound_x:
+                    common.colourerror("Result unknown. The lower bound for max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is <= " + str(bound_x) + " but the upper bound is > " + str(bound_x))
                     return 0
             elif self.compOp in ['<']: # compOp = '<'
                 # check whether max {P(F a) - P(F b)} > bound
@@ -155,11 +157,12 @@ class ModelChecker:
 
             if self.compOp in ['=', '>=']:
                 # check whether min {P(F a) - P(F b)} <= bound
-                if min_diff_upper < bound:
-                    common.colourerror("Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <" + str(bound))
+                bound_x = bound - self.epsilon
+                if min_diff_upper < bound_x:
+                    common.colourerror("Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <" + str(bound_x))
                     return -1
-                elif min_diff_lower < bound:
-                    common.colourerror("Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is >= " + str(bound) + " but the lower bound is < " + str(bound))
+                elif min_diff_lower < bound_x:
+                    common.colourerror("Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} is >= " + str(bound_x) + " but the lower bound is < " + str(bound_x))
                     return 0
             elif self.compOp in ['>']: # compOp = '>'
                 # check whether min {P(F a) - P(F b)} < bound
