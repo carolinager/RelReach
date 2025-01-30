@@ -27,6 +27,7 @@ module basic
 endmodule
 
 init  (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0) endinit
+//init true endinit
 
 label "init1" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=0);
 label "init2" = (ref=pow(2,n-1))&(l=0)&(j=0)&(fin=0)&(b=1);

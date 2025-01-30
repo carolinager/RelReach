@@ -31,7 +31,7 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
 
 
 ### Sample commands for (2\sigma2s) properties:
-- TL, m=2: ```--modelPath ./benchmark/TL/tl_2.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
+- TA, m=8: ```--modelPath ./benchmark/TL/tl_8.nm --numInit 2 --numScheds 2 --targets j0 j0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
   - Analogously for the other variants (m=4,6,8) and all initial-state-combinations
 - SD: ```--modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --targets target target -cop >```

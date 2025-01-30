@@ -23,7 +23,8 @@ module thread_secret
 
 endmodule
 
-init (l=0)&(f1=0)&(f2=0)  endinit
+//init (l=0)&(f1=0)&(f2=0)&((h=n1)|(h=n2))  endinit
+init true endinit
 
 label "init1" = (h=n1)&(l=0);
 label "init2" = (h=n2)&(l=0);
