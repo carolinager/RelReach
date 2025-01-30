@@ -56,14 +56,14 @@ class ModelChecker:
                     res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     max_a = (res_a.at(initial_state_1))
                     # to remain sound we need to acknowledge that this is only an approximative result
-                    max_a_under = max_a - 0.000001
-                    max_a_over = max_a + 0.000001
+                    max_a_under = max_a / (1 + 0.000001)
+                    max_a_over = max_a / (1 - 0.000001)
 
                     initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
                     res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
                     min_b = (res_b.at(initial_state_2))
-                    min_b_under = min_b - 0.000001
-                    min_b_over = min_b + 0.000001
+                    min_b_under = min_b / (1 + 0.000001)
+                    min_b_over = min_b / (1 - 0.000001)
 
                     max_diff_lower, max_diff_upper = max_a_under - min_b_over, max_a_over - min_b_under
 
@@ -128,14 +128,14 @@ class ModelChecker:
                     initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
                     res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     min_a = (res_a.at(initial_state_1))
-                    min_a_under = min_a - 0.000001
-                    min_a_over = min_a + 0.000001
+                    min_a_under = min_a / (1 + 0.000001)
+                    min_a_over = min_a / (1 - 0.000001)
 
                     initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
                     res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
                     max_b = (res_b.at(initial_state_2))
-                    max_b_under = max_b - 0.000001
-                    max_b_over = max_b + 0.000001
+                    max_b_under = max_b / (1 + 0.000001)
+                    max_b_over = max_b / (1 - 0.000001)
 
                     min_diff_upper, min_diff_lower = min_a_under - max_b_over, min_a_over - max_b_under
 
