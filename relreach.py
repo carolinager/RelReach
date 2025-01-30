@@ -22,7 +22,8 @@ def main():
         else:
             if not (input_args.epsilon == 0):
                 common.colourerror("Approximate comparison is only supported for =. Will treat epsilon as 0.")
-                epsilon = 0
+            epsilon = 0
+
 
         # 2 probability operators / summands / init labels expected. this is NOT the same as the number of distinct initial states present in the model
 
