@@ -40,26 +40,31 @@ class ModelChecker:
         # calculate max {P(F a) - P(F b)}
             if self.make_copies:
                 env = stormpy.Environment()
+                initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
+                initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
+
                 if self.exact:
                     common.colourerror("exact not implemented")
-                    env.solver_environment.set_force_exact() # Unexpected error encountered: 'stormpy.core.SolverEnvironment' object has no attribute 'set_force_exact'
+                    env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                     res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
+                    # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
+                    # 	(self: stormpy.core.ExplicitExactQuantitativeCheckResult, state: int) -> __gmp_expr<__mpq_struct [1], __mpq_struct [1]>
 
-                    max_diff_lower, max_diff_upper = res_a - res_a, res_a - res_b
+                    max_a = res_a.at(initial_state_1) #float(res_a.at(initial_state_1).numerator()) / float(res_a.at(initial_state_1).numerator())
+                    min_b = res_b.at(initial_state_2)
+                    max_diff_lower, max_diff_upper = max_a - min_b, max_a - min_b
                 else: # make_copies, not exact
                     # todo to retain a tolerance of 10^-6 we should use 10^-3 for model_checking though?
                     env.solver_environment.set_force_sound()
-                    initial_state_1 = list(model_a.labeling.get_states("init1"))[0]
                     res_a = stormpy.model_checking(model_a, properties_a[0].raw_formula, only_initial_states=True, environment=env)
                     max_a = (res_a.at(initial_state_1))
                     # to remain sound we need to acknowledge that this is only an approximative result
                     max_a_under = max_a / (1 + 0.000001)
                     max_a_over = max_a / (1 - 0.000001)
 
-                    initial_state_2 = list(model_b.labeling.get_states("init2"))[0]
                     res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True, environment=env)
                     min_b = (res_b.at(initial_state_2))
                     min_b_under = min_b / (1 + 0.000001)
@@ -121,7 +126,10 @@ class ModelChecker:
                     res_b = stormpy.model_checking(model_b, properties_b[0].raw_formula, only_initial_states=True,
                                                    environment=env)
 
-                    min_diff_lower, min_diff_upper = res_a - res_b, res_a - res_b
+                    min_a = res_a.at(initial_state_1)
+                    max_b = res_b.at(initial_state_2)
+                    max_diff_lower, max_diff_upper = min_a - max_b, min_a - max_b
+
                 else: # make_copies, not exact
                     # todo to retain a tolerance of 10^-6 we should use 10^-3 for model_checking though?
                     env.solver_environment.set_force_sound()
