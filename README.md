@@ -44,11 +44,11 @@ I.e., we check a (1\sigma2s) or a (1\sigma1s) property.
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
 ### Sample commands for (2\sigma1s) properties:
-- RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target```
+- RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 1 --numScheds 2 --targets target target```
   - Returns "Unknown" instantly, also with epsilon 0.000001
-- RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --targets target target --epsilon 0.00001```
+- RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 1 --numScheds 2 --targets target target --epsilon 0.00001```
   - Returns "Yes" instantly
-- RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --targets target target```
+- RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 1 --numScheds 2 --targets target target --epsilon 0.00001```
   - Returns "No" instantly
 
 ### Sample commands for (1\sigma2s) properties:

@@ -1,0 +1,4 @@
+ES sched1 ES sched2
+E s0(sched1) E s1(sched2)
+Restrict s0 init1 Restrict s1 init2
+P{s0}[F "counter0"] < P{s1}[F "counter0"] || P{s1}[F "counter0"] < P{s0}[F "counter0"] 
