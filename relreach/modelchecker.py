@@ -53,7 +53,7 @@ class ModelChecker:
                     # float(res_a.at(initial_state_1).numerator()) / float(res_a.at(initial_state_1).numerator())
                     min_b = res_b.at(initial_state_2)
                     max_diff_lower, max_diff_upper = max_a - min_b, max_a - min_b
-                    
+
                 else:  # make_copies, not exact
                     env.solver_environment.set_force_sound()
                     res_a = stormpy.model_checking(self.model, properties_a[0].raw_formula, only_initial_states=True,
