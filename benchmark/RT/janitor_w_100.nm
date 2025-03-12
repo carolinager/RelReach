@@ -16,8 +16,8 @@ formula down = min(1,max(y2-1,0));
 formula done = (started & (x1=n)&(y1=n));
 
 module master
-    started : bool init false;
-    turn : bool init false;
+    started : bool;
+    turn : bool;
 
     [placement] !started -> (started'=true);
     [ju] started & !done & turn -> (turn'=!turn);
@@ -31,8 +31,8 @@ endmodule
 
 module robot
 
-	x1 : [1..n] init 1; // x position of robot
-	y1 : [1..n] init 1; // y position of robot
+	x1 : [1..n]; // x position of robot
+	y1 : [1..n]; // y position of robot
 
 	[rr] x1<n & !(x1+1=x2 & y1=y2) -> 1 : (x1'=x1+1); // moves right until wall
 	[ru] x1=n & y1<n & !(x1=x2 & y1+1=y2) -> 1 : (y1'=y1+1); // moves up until wall
@@ -41,8 +41,8 @@ endmodule
 
 module janitor
 
-	x2 : [1..n] init n; // x position of janitor
-	y2 : [1..n] init n-1; // y position of janitor
+	x2 : [1..n]; // x position of janitor
+	y2 : [1..n]; // y position of janitor
 
 	[ju] !(y2=n | (y2+1=y1 & x2=x1) | done) -> 1 : (y2'=y2+1); // moves up
 	[jd] !(y2=1 | (y2-1=y1 & x2=x1) | done)  -> 1 : (y2'=y2-1); // moves down
@@ -50,6 +50,8 @@ module janitor
 	[jr] !(x2=n | (x2+1=x1 & y2=y1) | done) -> 1 : (x2'=x2+1); // moves right
 
 endmodule
+
+init (started=false)&(turn=false)&(x1=1)&(y1=1)&(x2=n)&(y2=n-1) endinit
 
 label "init1" = (!started);
 label "init2" = (!started);
