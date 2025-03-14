@@ -85,8 +85,10 @@ class ModelChecker:
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
-                    res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model,
-                                                                            properties_a_minus_b[0].raw_formula)
+                    res, _ = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula)
+                    # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
+                    res_lower = res / (1 + 0.000001)
+                    res_upper = res / (1 - 0.000001)
 
                 max_diff_lower, max_diff_upper = res_lower, res_upper
 
@@ -197,8 +199,10 @@ class ModelChecker:
                     res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model,
                                                                                   properties_b_minus_a[0].raw_formula)
                 else:
-                    res_lower, res_upper = stormpy.compute_rel_reach_helper(env, self.model,
-                                                                            properties_b_minus_a[0].raw_formula)
+                    res, _ = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula)
+                    # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
+                    res_lower = res / (1 + 0.000001)
+                    res_upper = res / (1 - 0.000001)
 
                 # results on original MDP: 2* results on transformed MDP
                 min_diff_lower, min_diff_upper = - res_upper, - res_lower  # note reversal of lower + upper!

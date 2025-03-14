@@ -36,7 +36,7 @@ def main():
         options.set_build_state_valuations()
         options.set_build_all_labels()
 
-        common.colourinfo("Parsing model...")
+        common.colourinfo("Parsing + building model...")
         parsed_model = model.parseModel(exact, options)
         parsing_time = time.perf_counter()
         common.colourinfo("Number of states: {0}".format(parsed_model.nr_states))

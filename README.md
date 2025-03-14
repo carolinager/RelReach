@@ -59,7 +59,7 @@ I.e., we check a (2\sigma2s) or a (2\sigma1s) property.
   - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
 
 ### Sample commands for (1\sigma1s) properties:
-- VN.1: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --epsilon 0.05``` 
+- VN.1: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --epsilon 0.1``` 
   - Returns "Yes" instantly
 - VN.2: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 1 --numScheds 1 --targets res_is_0 res_is_1 --comparisonOperator =``` 
   - Returns "No" instantly
