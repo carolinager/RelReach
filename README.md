@@ -13,6 +13,7 @@
 - ```--epsilon```: rational number for approximate comparison. Default is 0. Only allowed to be non-zero if ```--comparisonOperator``` is '=' or '!='
 - ```--checkModel```: if flag is set: check if model file can be parsed (property is not being checked)
 - ```--exact```: if flag is set: do exact computation with Rationals in storm
+- ```--witness```: if flag is set: output witness scheduler(s) if the property does not hold
 
 If numInit=1 we assume the model has exactly one state labeled "init1". 
 If numInit=2, we assume the model has exactly one state labeled "init1" and exactly one state labeled "init2".

@@ -4,6 +4,7 @@ from relreach.modelparser import Model
 from relreach.modelchecker import ModelChecker
 import stormpy
 
+import os
 import time
 
 def main():
@@ -17,6 +18,8 @@ def main():
         coeff = input_args.coefficient
         compOp = input_args.comparisonOperator
         exact = input_args.exact
+        witness = input_args.witness
+
         if compOp in ['=', '!=']:
             epsilon = input_args.epsilon
         else:
@@ -25,6 +28,11 @@ def main():
             epsilon = 0
 
         start_time = time.perf_counter()
+
+        if witness:
+            # create folder for storing witness schedulers
+            if not os.path.exists('logs'):
+                os.makedirs('logs')
 
         make_copies = False
         x = numInit == 1 and numScheds == 1
@@ -45,11 +53,11 @@ def main():
 
         if not input_args.checkModel:
             if make_copies:
-                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon)
+                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
                 res = modelchecker.modelCheck()
 
             else:
-                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon)
+                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
                 res = modelchecker.modelCheck()
 
         end_time = time.perf_counter()

@@ -2,9 +2,11 @@ import stormpy
 from relreach.utility import common
 from pycarl.gmp.gmp import Rational
 
+from contextlib import redirect_stdout
+
 
 class ModelChecker:
-    def __init__(self, model, make_copies, targets, compOp, coeff, exact, epsilon):
+    def __init__(self, model, make_copies, targets, compOp, coeff, exact, epsilon, witness):
         self.make_copies = make_copies
         self.model = model
         self.targets = targets
@@ -12,6 +14,7 @@ class ModelChecker:
         self.coeff = coeff
         self.exact = exact
         self.epsilon = epsilon
+        self.witness = witness
         # if self.exact:
         #     self.coeff = stormpy.Rational(self.coeff)
         #     self.epsilon = stormpy.Rational(self.epsilon)
@@ -43,32 +46,37 @@ class ModelChecker:
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                     res_a = stormpy.model_checking(self.model, properties_a[0].raw_formula, only_initial_states=True,
-                                                   environment=env)
+                                                   environment=env, extract_scheduler=self.witness)
                     res_b = stormpy.model_checking(self.model, properties_b[0].raw_formula, only_initial_states=True,
-                                                   environment=env)
+                                                   environment=env, extract_scheduler=self.witness)
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(self: stormpy.core.ExplicitExactQuantitativeCheckResult, state: int) -> __gmp_expr<__mpq_struct [1], __mpq_struct [1]>
 
                     max_a = res_a.at(initial_state_1)
                     # float(res_a.at(initial_state_1).numerator()) / float(res_a.at(initial_state_1).numerator())
                     min_b = res_b.at(initial_state_2)
+
+                    res = max_a - min_b
+                    scheds_max = [res_a.scheduler, res_b.scheduler]
                     max_diff_lower, max_diff_upper = max_a - min_b, max_a - min_b
 
                 else:  # make_copies, not exact
                     env.solver_environment.set_force_sound()
                     res_a = stormpy.model_checking(self.model, properties_a[0].raw_formula, only_initial_states=True,
-                                                   environment=env)
+                                                   environment=env, extract_scheduler=self.witness)
                     max_a = (res_a.at(initial_state_1))
                     # to remain sound we need to acknowledge that this is only an approximative result
                     max_a_under = max_a / (1 + 0.000001)
                     max_a_over = max_a / (1 - 0.000001)
 
                     res_b = stormpy.model_checking(self.model, properties_b[0].raw_formula, only_initial_states=True,
-                                                   environment=env)
+                                                   environment=env, extract_scheduler=self.witness)
                     min_b = (res_b.at(initial_state_2))
                     min_b_under = min_b / (1 + 0.000001)
                     min_b_over = min_b / (1 - 0.000001)
 
+                    res = max_a - min_b
+                    scheds_max = [res_a.scheduler, res_b.scheduler]
                     max_diff_lower, max_diff_upper = max_a_under - min_b_over, max_a_over - min_b_under
 
             else:  # not make_copies
@@ -80,12 +88,18 @@ class ModelChecker:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model,
+                    res, _ = stormpy.compute_rel_reach_helper_exact(env, self.model,
                                                                                   properties_a_minus_b[0].raw_formula)
+                    # todo , extract_scheduler=self.witness
+                    scheds_max = []
+                    res_lower, res_upper = res
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
                     res, _ = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula)
+                    # todo , extract_scheduler=self.witness
+                    scheds_max = []
+
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
                     res_lower = res / (1 + 0.000001)
                     res_upper = res / (1 - 0.000001)
@@ -100,6 +114,13 @@ class ModelChecker:
                     common.colourerror(
                         "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} > " + str(bound_x))
+                    # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
+                    for i in range(len(scheds_max)):
+                        file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                        with open(file_name, 'w') as f:
+                            with redirect_stdout(f):
+                                print(scheds_max[i])
+                    common.colourerror("Maximizing witness schedulers written to files") #todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper > bound_x:
                     common.colourerror(
@@ -112,6 +133,13 @@ class ModelChecker:
                     common.colourerror(
                         "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} >= " + str(bound))
+                    # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
+                    for i in range(len(scheds_max)):
+                        file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                        with open(file_name, 'w') as f:
+                            with redirect_stdout(f):
+                                print(scheds_max[i])
+                    common.colourerror("Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper >= bound:
                     common.colourerror(
@@ -125,6 +153,7 @@ class ModelChecker:
                     common.colourerror(
                         "max {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} >= " + str(
                             bound) + "-" + str(self.epsilon))
+                    v_max = res
                     res_first = -1
                 elif max_diff_upper >= bound_x:
                     common.colourerror(
@@ -166,6 +195,9 @@ class ModelChecker:
 
                     min_a = res_a.at(initial_state_1)
                     max_b = res_b.at(initial_state_2)
+
+                    res = min_a - max_b
+                    scheds_min = [res_a.scheduler, res_b.scheduler]
                     min_diff_upper, min_diff_lower = min_a - max_b, min_a - max_b
 
                 else:  # make_copies, not exact
@@ -184,6 +216,8 @@ class ModelChecker:
                     max_b_under = max_b / (1 + 0.000001)
                     max_b_over = max_b / (1 - 0.000001)
 
+                    res = min_a - max_b
+                    scheds_min = [res_a.scheduler, res_b.scheduler]
                     min_diff_upper, min_diff_lower = min_a_under - max_b_over, min_a_over - max_b_under
 
             else:  # not make_copies
@@ -196,13 +230,19 @@ class ModelChecker:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    res_lower, res_upper = stormpy.compute_rel_reach_helper_exact(env, self.model,
+                    res, _ = stormpy.compute_rel_reach_helper_exact(env, self.model,
                                                                                   properties_b_minus_a[0].raw_formula)
+                    # todo extract schedulers
+                    scheds_min = []
+                    res_lower, res_upper = res
                 else:
                     res, _ = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula)
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
                     res_lower = res / (1 + 0.000001)
                     res_upper = res / (1 - 0.000001)
+
+                    scheds_min = []
+                    #todo extract schedulers
 
                 # results on original MDP: 2* results on transformed MDP
                 min_diff_lower, min_diff_upper = - res_upper, - res_lower  # note reversal of lower + upper!
@@ -215,6 +255,15 @@ class ModelChecker:
                     common.colourerror(
                         "Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} <" + str(bound_x))
+
+                    # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
+                    for i in range(len(scheds_min)):
+                        file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                        with open(file_name, 'w') as f:
+                            with redirect_stdout(f):
+                                print(scheds_min[i])
+                    common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+
                     return -1
                 elif min_diff_lower < bound_x:
                     common.colourerror(
@@ -229,19 +278,29 @@ class ModelChecker:
                     common.colourerror(
                         "Property does not hold since min {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} <= " + str(bound))
+
+                    # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
+                    for i in range(len(scheds_min)):
+                        file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                        with open(file_name, 'w') as f:
+                            with redirect_stdout(f):
+                                print(scheds_min[i])
+                    common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+
                     return -1
                 elif min_diff_lower <= bound:
                     common.colourerror(
                         "Result unknown. The upper bound for min {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} is > " + str(bound) + " but the lower bound is <= " + str(bound))
                     return 0
-            else:  # compOp = '!='
+            else:  # compOp = '!=' i.e. exists =
                 # check whether min {P(F a) - P(F b)} > bound + epsilon. If yes: prop holds. If not: prop does not hold or unknown since we wouldnt reach this point if first disjunct held.
                 bound_x = bound + self.epsilon
                 if min_diff_upper <= bound_x:
                     common.colourerror(
                         "min {P_init1(F " + self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(
                             bound) + "+" + str(self.epsilon))
+                    v_min = res
                     res_second = -1
                 elif min_diff_lower <= bound_x:
                     common.colourerror(
@@ -269,16 +328,49 @@ class ModelChecker:
                         " and min {P_init1(F " +
                         self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(bound) + "+" + str(
                             self.epsilon))
+
+                    if max_diff_upper <= bound + self.epsilon:
+                        # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
+                        for i in range(len(scheds_max)):
+                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_max[i])
+                        common.colourerror(
+                            "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
+                    elif min_diff_lower >= bound - self.epsilon:
+                        # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
+                        for i in range(len(scheds_min)):
+                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_min[i])
+                        common.colourerror(
+                            "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
+                    else:
+                        lambda_witness = (bound - v_max)/(v_min - v_max)
+                        for i in range(len(scheds_max)):
+                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_max[i])
+                        common.colourerror(
+                            "Maximizing schedulers written to files")  # todo possibly for goal unfolding
+                        for i in range(len(scheds_min)):
+                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_min[i])
+                        common.colourerror(
+                            "Minimizing schedulers written to files")  # todo possibly for goal unfolding
+                        common.colourerror("Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(lambda_witness))
                     return -1
                 elif res_first == -1 and res_second == 0:
-                    common.colourerror("Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " +
-                        self.targets[1] + ")} >= " + str(bound) + "-" + str(self.epsilon))
-                    return -1
+                    common.colourerror("Result unknown")
+                    return 0
                 elif res_first == 0 and res_second == -1:
-                    common.colourerror("Property does not hold since min {P_init1(F " +
-                        self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(bound) + "+" + str(
-                            self.epsilon))
-                    return -1
+                    common.colourerror("Result unknown")
+                    return 0
 
         # if compOp is '!=' we do not reach this
         assert self.compOp != '!=', "Something went wrong. If compOp is !=, we should have terminated earlier."

@@ -13,5 +13,6 @@ def parseArguments():
     parser.add_argument('-cop', '--comparisonOperator', choices=['=', '<', '>', '<=', '>=', '!=', 'app'], default='=', help='comparison operator')
     parser.add_argument('-cM', '--checkModel', action='store_true', help='check if model file can be parsed')
     parser.add_argument('-ex', '--exact', action='store_true', help='activate exact computation')
+    parser.add_argument('-wit', '--witness', action='store_true', help='output witness scheduler(s)')
     args = parser.parse_args()
     return args
