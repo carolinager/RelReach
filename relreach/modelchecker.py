@@ -88,16 +88,17 @@ class ModelChecker:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    res, _ = stormpy.compute_rel_reach_helper_exact(env, self.model,
-                                                                                  properties_a_minus_b[0].raw_formula)
+                    res, _, witness = stormpy.compute_rel_reach_helper_exact(env, self.model,
+                                                                                  properties_a_minus_b[0].raw_formula, self.witness)
                     # todo , extract_scheduler=self.witness
                     scheds_max = []
                     res_lower, res_upper = res
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
-                    res, _ = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula)
+                    res, _, witness = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula, self.witness)
                     # todo , extract_scheduler=self.witness
+                    # TODO why is the second argument ignored?
                     scheds_max = []
 
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
