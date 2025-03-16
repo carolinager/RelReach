@@ -3,6 +3,7 @@ from relreach.utility import common
 from pycarl.gmp.gmp import Rational
 
 from contextlib import redirect_stdout
+import time
 
 
 class ModelChecker:
@@ -120,7 +121,7 @@ class ModelChecker:
                     # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
                     if self.witness:
                         for i in range(len(scheds_max)):
-                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            file_name = 'logs/scheduler_max_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_max[i])
@@ -140,7 +141,7 @@ class ModelChecker:
                     # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
                     if self.witness:
                         for i in range(len(scheds_max)):
-                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            file_name = 'logs/scheduler_max_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_max[i])
@@ -266,7 +267,7 @@ class ModelChecker:
                     # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
                     if self.witness:
                         for i in range(len(scheds_min)):
-                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            file_name = 'logs/scheduler_min_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_min[i])
@@ -290,7 +291,7 @@ class ModelChecker:
                     # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
                     if self.witness:
                         for i in range(len(scheds_min)):
-                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            file_name = 'logs/scheduler_min_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_min[i])
@@ -339,10 +340,12 @@ class ModelChecker:
                             self.epsilon))
 
                     if self.witness:
+                        common.colourerror("Writing witness files...")
+                        start_witness_time = time.perf_counter()
                         if max_diff_upper <= bound + self.epsilon:
                             # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
                             for i in range(len(scheds_max)):
-                                file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                                file_name = 'logs/scheduler_max_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                                 with open(file_name, 'w') as f:
                                     with redirect_stdout(f):
                                         print(scheds_max[i])
@@ -351,7 +354,7 @@ class ModelChecker:
                         elif min_diff_lower >= bound - self.epsilon:
                             # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
                             for i in range(len(scheds_min)):
-                                file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                                file_name = 'logs/scheduler_min_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                                 with open(file_name, 'w') as f:
                                     with redirect_stdout(f):
                                         print(scheds_min[i])
@@ -360,20 +363,23 @@ class ModelChecker:
                         else:
                             lambda_witness = (bound - v_max)/(v_min - v_max)
                             for i in range(len(scheds_max)):
-                                file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                                file_name = 'logs/scheduler_max_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                                 with open(file_name, 'w') as f:
                                     with redirect_stdout(f):
                                         print(scheds_max[i])
                             common.colourerror(
                                 "Maximizing schedulers written to files")  # todo possibly for goal unfolding
                             for i in range(len(scheds_min)):
-                                file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                                file_name = 'logs/scheduler_min_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                                 with open(file_name, 'w') as f:
                                     with redirect_stdout(f):
                                         print(scheds_min[i])
                             common.colourerror(
                                 "Minimizing schedulers written to files")  # todo possibly for goal unfolding
                             common.colourerror("Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(lambda_witness))
+                        end_witness_time = time.perf_counter()
+                        common.colourinfo("Writing witness files took: " + str(round(end_witness_time - start_witness_time, 2)) + " seconds", True)
+                        # todo record time in the other cases
                     return -1
                 elif res_first == -1 and res_second == 0:
                     common.colourerror("Result unknown")
