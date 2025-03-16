@@ -33,6 +33,7 @@ def main():
             # create folder for storing witness schedulers
             if not os.path.exists('logs'):
                 os.makedirs('logs')
+                # todo clean folder or make a separate folder for each run
 
         make_copies = False
         x = numInit == 1 and numScheds == 1
@@ -55,10 +56,11 @@ def main():
             if make_copies:
                 modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
                 res = modelchecker.modelCheck()
-
             else:
                 modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
                 res = modelchecker.modelCheck()
+                if witness:
+                    common.colourinfo("Note that output witness schedulers are defined on the goal unfolding not the original MDP")
 
         end_time = time.perf_counter()
         common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", True)

@@ -76,7 +76,8 @@ class ModelChecker:
                     min_b_over = min_b / (1 - 0.000001)
 
                     res = max_a - min_b
-                    scheds_max = [res_a.scheduler, res_b.scheduler]
+                    if self.witness:
+                        scheds_max = [res_a.scheduler, res_b.scheduler]
                     max_diff_lower, max_diff_upper = max_a_under - min_b_over, max_a_over - min_b_under
 
             else:  # not make_copies
@@ -88,17 +89,19 @@ class ModelChecker:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    res, _ = stormpy.compute_rel_reach_helper_exact(env, self.model,
-                                                                                  properties_a_minus_b[0].raw_formula)
+                    res, _, sched = stormpy.compute_rel_reach_helper_exact(env, self.model,
+                                                                                  properties_a_minus_b[0].raw_formula, computeScheduler=self.witness)
                     # todo , extract_scheduler=self.witness
-                    scheds_max = []
-                    res_lower, res_upper = res
+                    if self.witness:
+                        scheds_max = [sched]
+                    res_lower, res_upper = res, res
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
-                    res, _ = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula)
+                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula, self.witness)
                     # todo , extract_scheduler=self.witness
-                    scheds_max = []
+                    if self.witness:
+                        scheds_max = [sched]
 
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
                     res_lower = res / (1 + 0.000001)
@@ -115,12 +118,13 @@ class ModelChecker:
                         "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} > " + str(bound_x))
                     # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
-                    for i in range(len(scheds_max)):
-                        file_name = 'logs/scheduler_max_' + str(i) + '.txt'
-                        with open(file_name, 'w') as f:
-                            with redirect_stdout(f):
-                                print(scheds_max[i])
-                    common.colourerror("Maximizing witness schedulers written to files") #todo possibly for goal unfolding
+                    if self.witness:
+                        for i in range(len(scheds_max)):
+                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_max[i])
+                        common.colourerror("Maximizing witness schedulers written to files") #todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper > bound_x:
                     common.colourerror(
@@ -134,12 +138,13 @@ class ModelChecker:
                         "Property does not hold since max {P_init1(F " + self.targets[0] + ") - P_init2(F " +
                         self.targets[1] + ")} >= " + str(bound))
                     # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
-                    for i in range(len(scheds_max)):
-                        file_name = 'logs/scheduler_max_' + str(i) + '.txt'
-                        with open(file_name, 'w') as f:
-                            with redirect_stdout(f):
-                                print(scheds_max[i])
-                    common.colourerror("Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
+                    if self.witness:
+                        for i in range(len(scheds_max)):
+                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_max[i])
+                        common.colourerror("Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper >= bound:
                     common.colourerror(
@@ -230,19 +235,21 @@ class ModelChecker:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-                    res, _ = stormpy.compute_rel_reach_helper_exact(env, self.model,
-                                                                                  properties_b_minus_a[0].raw_formula)
+                    res, _, sched = stormpy.compute_rel_reach_helper_exact(env, self.model,
+                                                                                  properties_b_minus_a[0].raw_formula, self.witness)
                     # todo extract schedulers
-                    scheds_min = []
-                    res_lower, res_upper = res
+                    if self.witness:
+                        scheds_min = [sched]
+                    res_lower, res_upper = res, res
                 else:
-                    res, _ = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula)
+                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula, self.witness)
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
+                    if self.witness:
+                        scheds_min = [sched]
+
+                    res_lower, res_upper = res, res
                     res_lower = res / (1 + 0.000001)
                     res_upper = res / (1 - 0.000001)
-
-                    scheds_min = []
-                    #todo extract schedulers
 
                 # results on original MDP: 2* results on transformed MDP
                 min_diff_lower, min_diff_upper = - res_upper, - res_lower  # note reversal of lower + upper!
@@ -257,12 +264,13 @@ class ModelChecker:
                         self.targets[1] + ")} <" + str(bound_x))
 
                     # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
-                    for i in range(len(scheds_min)):
-                        file_name = 'logs/scheduler_min_' + str(i) + '.txt'
-                        with open(file_name, 'w') as f:
-                            with redirect_stdout(f):
-                                print(scheds_min[i])
-                    common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+                    if self.witness:
+                        for i in range(len(scheds_min)):
+                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_min[i])
+                        common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
 
                     return -1
                 elif min_diff_lower < bound_x:
@@ -280,12 +288,13 @@ class ModelChecker:
                         self.targets[1] + ")} <= " + str(bound))
 
                     # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
-                    for i in range(len(scheds_min)):
-                        file_name = 'logs/scheduler_min_' + str(i) + '.txt'
-                        with open(file_name, 'w') as f:
-                            with redirect_stdout(f):
-                                print(scheds_min[i])
-                    common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+                    if self.witness:
+                        for i in range(len(scheds_min)):
+                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                            with open(file_name, 'w') as f:
+                                with redirect_stdout(f):
+                                    print(scheds_min[i])
+                        common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
 
                     return -1
                 elif min_diff_lower <= bound:
@@ -329,41 +338,42 @@ class ModelChecker:
                         self.targets[0] + ") - P_init2(F " + self.targets[1] + ")} <= " + str(bound) + "+" + str(
                             self.epsilon))
 
-                    if max_diff_upper <= bound + self.epsilon:
-                        # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
-                        for i in range(len(scheds_max)):
-                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
-                            with open(file_name, 'w') as f:
-                                with redirect_stdout(f):
-                                    print(scheds_max[i])
-                        common.colourerror(
-                            "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
-                    elif min_diff_lower >= bound - self.epsilon:
-                        # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
-                        for i in range(len(scheds_min)):
-                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
-                            with open(file_name, 'w') as f:
-                                with redirect_stdout(f):
-                                    print(scheds_min[i])
-                        common.colourerror(
-                            "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
-                    else:
-                        lambda_witness = (bound - v_max)/(v_min - v_max)
-                        for i in range(len(scheds_max)):
-                            file_name = 'logs/scheduler_max_' + str(i) + '.txt'
-                            with open(file_name, 'w') as f:
-                                with redirect_stdout(f):
-                                    print(scheds_max[i])
-                        common.colourerror(
-                            "Maximizing schedulers written to files")  # todo possibly for goal unfolding
-                        for i in range(len(scheds_min)):
-                            file_name = 'logs/scheduler_min_' + str(i) + '.txt'
-                            with open(file_name, 'w') as f:
-                                with redirect_stdout(f):
-                                    print(scheds_min[i])
-                        common.colourerror(
-                            "Minimizing schedulers written to files")  # todo possibly for goal unfolding
-                        common.colourerror("Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(lambda_witness))
+                    if self.witness:
+                        if max_diff_upper <= bound + self.epsilon:
+                            # output witness for max i.e. write each scheduler maximizing the weighted sum to a file
+                            for i in range(len(scheds_max)):
+                                file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                                with open(file_name, 'w') as f:
+                                    with redirect_stdout(f):
+                                        print(scheds_max[i])
+                            common.colourerror(
+                                "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
+                        elif min_diff_lower >= bound - self.epsilon:
+                            # output witness for min i.e. write each scheduler minimizing the weighted sum to a file
+                            for i in range(len(scheds_min)):
+                                file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                                with open(file_name, 'w') as f:
+                                    with redirect_stdout(f):
+                                        print(scheds_min[i])
+                            common.colourerror(
+                                "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
+                        else:
+                            lambda_witness = (bound - v_max)/(v_min - v_max)
+                            for i in range(len(scheds_max)):
+                                file_name = 'logs/scheduler_max_' + str(i) + '.txt'
+                                with open(file_name, 'w') as f:
+                                    with redirect_stdout(f):
+                                        print(scheds_max[i])
+                            common.colourerror(
+                                "Maximizing schedulers written to files")  # todo possibly for goal unfolding
+                            for i in range(len(scheds_min)):
+                                file_name = 'logs/scheduler_min_' + str(i) + '.txt'
+                                with open(file_name, 'w') as f:
+                                    with redirect_stdout(f):
+                                        print(scheds_min[i])
+                            common.colourerror(
+                                "Minimizing schedulers written to files")  # todo possibly for goal unfolding
+                            common.colourerror("Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(lambda_witness))
                     return -1
                 elif res_first == -1 and res_second == 0:
                     common.colourerror("Result unknown")
