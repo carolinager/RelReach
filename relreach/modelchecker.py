@@ -7,9 +7,11 @@ import time
 
 
 class ModelChecker:
-    def __init__(self, model, make_copies, targets, compOp, coeff, exact, epsilon, witness):
+    def __init__(self, model, make_copies, state_sched_comb, ind_dict, targets, compOp, coeff, exact, epsilon, witness):
         self.make_copies = make_copies
         self.model = model
+        self.state_sched_comb = state_sched_comb
+        self.ind_dict = ind_dict
         self.targets = targets
         self.compOp = compOp
         self.coeff = coeff
@@ -21,10 +23,116 @@ class ModelChecker:
         #     self.epsilon = stormpy.Rational(self.epsilon)
 
     def modelCheck(self):
+        # Step 3: compute min and/or max for each state-scheduler combination
+        # for each key, we store: if exact: single exact result, else tuples consisting of lower and upper bound
+        res_min_dict = {k: [] for k in self.state_sched_comb}
+        res_max_dict = {k: [] for k in self.state_sched_comb}
+        if self.witness:
+            witness_min_dict = {k: [] for k in self.state_sched_comb}
+            witness_max_dict = {k: [] for k in self.state_sched_comb}
+
+        for (state, schedind) in self.state_sched_comb:
+            rel_ind = self.ind_dict[(state,schedind)]
+
+            # compute min and/or max
+            if self.compOp in ['=', '<=', '<', '!=']:
+                # compute min
+                if len(rel_ind) == 1:
+                    # we can use single-objective model-checking
+                    rel_target = self.targets[rel_ind[0]-1]
+                    rel_coeff = self.coeff[rel_ind[0]-1]
+                    if rel_coeff >= 0:
+                        formula = "Pmin=? [F \"" + rel_target + "\"]"
+                    else:
+                        formula = "Pmax=? [F \"" + rel_target + "\"]"
+                    properties = stormpy.parse_properties(formula)
+                    env = stormpy.Environment()
+
+                    if self.exact:
+                        pass
+                        # todo
+                    else:
+                        env.solver_environment.set_force_sound() # todo does this do anything?
+                        res = stormpy.model_checking(self.model,
+                                                     properties[0].raw_formula,
+                                                     only_initial_states=True,
+                                                     environment=env,
+                                                     extract_scheduler=self.witness)
+                        res_opt = res.at(state)
+                        # stormpy.model_checking currently does not return sound lower and upper bound
+                        # to remain sound we need to acknowledge that this is only an approximative result
+                        res_opt_under = res_opt / (1 + 0.000001)
+                        res_opt_over = res_opt / (1 - 0.000001)
+
+                        res_min_dict[(state,schedind)] = (rel_coeff * res_opt_under, rel_coeff * res_opt_over)
+
+                        if self.witness:
+                            witness_min_dict[(state,schedind)] = res.scheduler
+
+                else:
+                    # we can use multi-objective model-checking
+                    rel_targets = [self.targets[i-1] for i in rel_ind]
+                    rel_coeffs = [self.coeff[i-1] for i in rel_ind]
+                    if self.exact:
+                        pass
+                        # todo
+                    else:
+                        formula_interm = "multi("
+                        for target in rel_targets:
+                            formula_interm += "Pmax=?  [F \"" + target + "\"], "
+                        formula = formula_interm[:-2] + ")"
+                        properties = stormpy.parse_properties(formula)
+                        env = stormpy.Environment()
+
+                        res, resOver, sched = stormpy.compute_rel_reach_helper(env,
+                                                                               self.model,
+                                                                               properties[0].raw_formula,
+                                                                               rel_coeffs, # weightVector
+                                                                               self.witness)
+                        print(res)
+                        print(resOver)
+                        # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
+                        # to remain sound we need to acknowledge that this is only an approximative result
+                        res_under = res / (1 + 0.000001)
+                        res_over = res / (1 - 0.000001)
+
+                        # compute_rel_reach_helper already takes care of correct weighting with weightVector=rel_coeffs
+                        res_min_dict[(state, schedind)] = (res_under, res_over)
+
+                        if self.witness:
+                            witness_min_dict[(state,schedind)] = sched
+
+            if self.compOp in ['=', '>=', '>', '!=']:
+                # compute max
+                if len(rel_ind) == 1:
+                    if self.exact:
+                        pass
+                    else:
+                        pass
+                else:
+                    if self.exact:
+                        pass
+                    else:
+                        pass
+                pass
+
+        # Step 4: aggregate
+        if self.compOp in ['<=', '<']:
+            # todo
+            pass
+        elif self.compOp in ['>=', '>']:
+            #todo
+            pass
+        elif self.compOp == '=':
+            pass
+        elif self.compOp == '!=':
+            pass
+
+    def modelCheckOld(self):
         target_a = self.targets[0]
         target_b = self.targets[1]
 
-        bound = self.coeff  # if we add coeff for the summands: self.coeff[2]
+        bound = self.coeff[-1]  # if we add coeff for the summands: self.coeff[2]
         res_first = None
         res_second = None
 
@@ -86,6 +194,7 @@ class ModelChecker:
                 properties_a_minus_b = stormpy.parse_properties(formula_a_minus_b)
                 env = stormpy.Environment()
                 # env.solver_environment.set_force_sound()
+                print("< <= = !=")
                 if self.exact:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
@@ -99,7 +208,9 @@ class ModelChecker:
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
-                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula, self.witness)
+                    res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula, self.witness) # todo adjust new relreachhelper , [0.75,-0.75]
+                    print(res)
+                    print(resOver)
                     # todo , extract_scheduler=self.witness
                     if self.witness:
                         scheds_max = [sched]
@@ -232,6 +343,7 @@ class ModelChecker:
                 properties_b_minus_a = stormpy.parse_properties(formula_b_minus_a)
                 env = stormpy.Environment()  # standard precision is 0.000001
                 # env.solver_environment.set_force_sound()
+                print("> >= = !=")
                 if self.exact:
                     env.solver_environment.set_force_exact()
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
@@ -243,7 +355,7 @@ class ModelChecker:
                         scheds_min = [sched]
                     res_lower, res_upper = res, res
                 else:
-                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula, self.witness)
+                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula, self.witness) # todo adjust new relreachhelper , [1.0, -1.0]
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
                     if self.witness:
                         scheds_min = [sched]

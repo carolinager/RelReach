@@ -16,16 +16,15 @@ class Model:
 
     def parseModel(self, exact, options):
         try:
-            if os.path.exists(self.model_path):
-                initial_prism_program = stormpy.parse_prism_program(self.model_path)
-                if exact:
-                    initial_model_sparse = stormpy.build_sparse_exact_model_with_options(initial_prism_program, options)
-                else:
-                    initial_model_sparse = stormpy.build_sparse_model_with_options(initial_prism_program, options)
-                #common.colourinfo("Model created from " + self.model_path + " with options")
-                return initial_model_sparse
+            assert os.path.exists(self.model_path), "Model file does not exist!"
+
+            initial_prism_program = stormpy.parse_prism_program(self.model_path)
+            if exact:
+                initial_model_sparse = stormpy.build_sparse_exact_model_with_options(initial_prism_program, options)
             else:
-                common.colourother("Model file does not exist!")
+                initial_model_sparse = stormpy.build_sparse_model_with_options(initial_prism_program, options)
+            #common.colourinfo("Model created from " + self.model_path + " with options")
+            return initial_model_sparse
 
         except IOError as e:
             common.colourerror("I/O error({0}): {1}".format(e.errno, e.strerror))

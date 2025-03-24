@@ -9,17 +9,21 @@ import time
 
 def main():
     try:
+        start_time = time.perf_counter()
+
         input_args = parseArguments()
 
         model = Model(input_args.modelPath)
-        numScheds = input_args.numScheds
-        numInit = input_args.numInit
+        numScheds = input_args.numScheds # n
+        numInit = input_args.numInit # m
+        schedList = input_args.schedList
         targets = input_args.targets
         coeff = input_args.coefficient
         compOp = input_args.comparisonOperator
         exact = input_args.exact
         witness = input_args.witness
 
+        # correctness checks
         if compOp in ['=', '!=']:
             epsilon = input_args.epsilon
         else:
@@ -27,7 +31,14 @@ def main():
                 common.colourerror("Approximate comparison is only supported for = and !=. Will treat epsilon as 0.")
             epsilon = 0
 
-        start_time = time.perf_counter()
+        if numInit < numScheds:
+            common.colourerror("At least one scheduler is lonely: Number of initial states < number of schedulers. Will assume numScheds := numInit.")
+            numScheds = numInit
+
+        assert len(targets) == numInit, "Number of target labels does not match number of initial states."
+        assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial states + 1."
+        assert len(schedList) == numInit, "Size of scheduler list does not match number of initial state labels."
+        assert set(schedList) == set(range(1,numScheds+1)), "List of schedulers does not cover the range {1,...,numScheds} or exceeds it."
 
         if witness:
             # create folder for storing witness schedulers
@@ -35,16 +46,12 @@ def main():
                 os.makedirs('logs')
                 # todo clean folder or make a separate folder for each run
 
-        make_copies = False
-        x = numInit == 1 and numScheds == 1
-        if not (numInit == 1 and numScheds == 1):
-            # if we do not have 1 scheduler and 1 initial state, then we make 2 copies of the MDP
-            make_copies = True
-
+        # Parse + build MDP
         options = stormpy.BuilderOptions()
         options.set_build_state_valuations()
         options.set_build_all_labels()
 
+        # Model-checking
         common.colourinfo("Parsing + building model...")
         parsed_model = model.parseModel(exact, options)
         parsing_time = time.perf_counter()
@@ -52,15 +59,33 @@ def main():
         common.colourinfo("Number of transitions: {0}".format(parsed_model.nr_transitions))
         common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
-        if not input_args.checkModel:
-            if make_copies:
-                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
-                res = modelchecker.modelCheck()
+        # assert each init label labels exactly one state and store which indices are associated with which initial state
+        stateList = []
+        stateIndexDict = {}
+        for i in range(1,numInit+1):
+            states_i = list(parsed_model.labeling.get_states(f"init{i}"))
+            assert len(states_i) == 1, f"More than a single state is labeled with init{i}"
+            stateList.append(states_i[0])
+            if states_i[0] in stateIndexDict.keys():
+                stateIndexDict[states_i[0]].append(i)
             else:
-                modelchecker = ModelChecker(parsed_model, make_copies, targets, compOp, coeff, exact, epsilon, witness)
-                res = modelchecker.modelCheck()
-                if witness:
-                    common.colourinfo("Note that output witness schedulers are defined on the goal unfolding not the original MDP")
+                stateIndexDict[states_i[0]] = [i]
+
+        # create state-scheduler-combinations
+        state_sched_comb = list(set(zip(stateList, schedList)))
+        ind_dict = {(st,sched) : stateIndexDict[st] for (st,sched) in state_sched_comb} # which initial state /summand indices belong to each state-sched-comb
+
+        # todo remove hardcoding
+        make_copies = False
+        if len(state_sched_comb) > 1:
+            # if we do not have 1 scheduler and 1 initial state, then we make 2 copies of the MDP
+            make_copies = True
+
+        if not input_args.checkModel:
+            modelchecker = ModelChecker(parsed_model, make_copies, state_sched_comb, ind_dict, targets, compOp, coeff, exact, epsilon, witness)
+            res = modelchecker.modelCheck()
+            # todo if witness and not make_copies:
+            #    common.colourinfo("Note that output witness schedulers are defined on the goal unfolding not the original MDP")
 
         end_time = time.perf_counter()
         common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", True)
