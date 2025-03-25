@@ -22,111 +22,306 @@ class ModelChecker:
         #     self.coeff = stormpy.Rational(self.coeff)
         #     self.epsilon = stormpy.Rational(self.epsilon)
 
+    # computing optimal values (as specified in formula) for a state-scheduler combination c with |relInd(c)|=1
+    def modelCheckSingle(self, formula, state, schedind, rel_coeff, res_dict, witness_dict):
+        properties = stormpy.parse_properties(formula)
+        env = stormpy.Environment()
+
+        if self.exact:
+            print("x")
+            env.solver_environment.set_force_exact()
+            env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+            env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+        else:
+            env.solver_environment.set_force_sound()
+
+        res = stormpy.model_checking(self.model,
+                                     properties[0].raw_formula,
+                                     only_initial_states=True,
+                                     environment=env,
+                                     extract_scheduler=self.witness)
+        res_at_state = res.at(state)
+        print("res at " + str((state, schedind)) + ": " + str(res_at_state))
+
+        if self.exact:
+            res_dict[(state, schedind)] = Rational(rel_coeff) * res_at_state
+            print(Rational(rel_coeff) * res_at_state)
+        else:
+            res_weighted = rel_coeff * res_at_state
+            # stormpy.model_checking currently does not return sound lower and upper bound but (lower + upper)/2
+            # to remain sound we need to acknowledge that this is only an approximative result
+            # we know res_at_state >= 0
+            if rel_coeff >= 0:
+                res_opt_under = res_weighted / (1 + 0.000001)
+                res_opt_over = res_weighted / (1 - 0.000001)
+            else:
+                res_opt_under = res_weighted / (1 - 0.000001)
+                res_opt_over = res_weighted / (1 + 0.000001)
+            res_dict[(state, schedind)] = (res_opt_under, res_opt_over)
+            print(res_opt_under)
+            print(res_opt_over)
+
+        if self.witness:
+            witness_dict[(state, schedind)] = res.scheduler
+
+        return res_dict, witness_dict
+
+    # computing optimal values (as specified in formula) for a state-scheduler combination c with |relInd(c)|>1
+    def modelCheckMulti(self, formula, state, schedind, rel_coeffs, res_dict, witness_dict):
+        properties = stormpy.parse_properties(formula)
+        env = stormpy.Environment()
+
+        if self.exact:
+            env.solver_environment.set_force_exact()
+            env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+            env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+            res_weighted, resOver, sched = stormpy.compute_rel_reach_helper_exact(env,
+                                                                         self.model,
+                                                                         state,
+                                                                         properties[0].raw_formula,
+                                                                         [Rational(r) for r in rel_coeffs], # weightVector
+                                                                         self.witness)
+            res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
+        else:
+            res_weighted, resOver, sched = stormpy.compute_rel_reach_helper(env,
+                                                                   self.model,
+                                                                   state,
+                                                                   properties[0].raw_formula,
+                                                                   rel_coeffs,  # weightVector
+                                                                   self.witness)
+            # StandardPcaaWeightVectorChecker currently returns res := (lower + upper)/2 for both res_u and res_o
+            # where lower <= exact_res <= upper
+            # and guarantees that | res - exact_res | <= | exact_res | * 0.000001
+            # to remain sound we need to acknowledge that this is only an approximative result
+            if res_weighted >= 0:
+                res_under = res_weighted / (1 + 0.000001)
+                res_over = res_weighted / (1 - 0.000001)
+            else:
+                res_under = res_weighted / (1 - 0.000001)
+                res_over = res_weighted / (1 + 0.000001)
+            res_dict[(state, schedind)] = (res_under, res_over)
+
+        print("res at " + str((state, schedind)) + ": " + str(res_weighted))
+        print(resOver)
+        if self.witness:
+            witness_dict[(state, schedind)] = sched
+
+        return res_dict, witness_dict
+
+    # Main model-checking function
     def modelCheck(self):
         # Step 3: compute min and/or max for each state-scheduler combination
         # for each key, we store: if exact: single exact result, else tuples consisting of lower and upper bound
-        res_min_dict = {k: [] for k in self.state_sched_comb}
+        res_min_dict = {k: [] for k in self.state_sched_comb}  # todo change to list?
         res_max_dict = {k: [] for k in self.state_sched_comb}
         if self.witness:
             witness_min_dict = {k: [] for k in self.state_sched_comb}
             witness_max_dict = {k: [] for k in self.state_sched_comb}
+            print(witness_max_dict)
+        else:
+            witness_min_dict = None
+            witness_max_dict = None
 
         for (state, schedind) in self.state_sched_comb:
-            rel_ind = self.ind_dict[(state,schedind)]
+            rel_ind = self.ind_dict[(state, schedind)]
 
             # compute min and/or max
-            if self.compOp in ['=', '<=', '<', '!=']:
-                # compute min
+            if self.compOp in ['<=', '<', '=', '!=']:
+                # forall sched P(F a) < bound iff max {P(F a)} < bound
                 if len(rel_ind) == 1:
                     # we can use single-objective model-checking
-                    rel_target = self.targets[rel_ind[0]-1]
-                    rel_coeff = self.coeff[rel_ind[0]-1]
+                    rel_target = self.targets[rel_ind[0] - 1]
+                    rel_coeff = self.coeff[rel_ind[0] - 1]
                     if rel_coeff >= 0:
+                        # max {q * P(F a)} = q * max {P(F a)} for q>=0
+                        formula = "Pmax=? [F \"" + rel_target + "\"]"
+                    else:
+                        # max {q * P(F a)} = q * min {P(F a)} for q<0
+                        formula = "Pmin=? [F \"" + rel_target + "\"]"
+
+                    res_max_dict, witness_max_dict = self.modelCheckSingle(formula, state, schedind, rel_coeff, res_max_dict, witness_max_dict)
+
+                else:
+                    # we need to use multi-objective model-checking
+                    rel_targets = [self.targets[i - 1] for i in rel_ind]
+                    rel_coeffs = [self.coeff[i - 1] for i in rel_ind]
+
+                    # compute_rel_reach_helper takes care of correct weighting with weightVector=rel_coeffs and optimizing in correct direction
+                    formula_interm = "multi("
+                    for target in rel_targets:
+                        formula_interm += "Pmax=?  [F \"" + target + "\"], "
+                    formula = formula_interm[:-2] + ")"
+
+                    res_max_dict, witness_max_dict = self.modelCheckMulti(formula, state, schedind, rel_coeffs, res_max_dict, witness_max_dict)
+
+            if self.compOp in ['>=', '>', '=', '!=']:
+                # forall sched P(F a) > bound iff min {P(F a)} > bound
+                if len(rel_ind) == 1:
+                    rel_target = self.targets[rel_ind[0] - 1]
+                    rel_coeff = self.coeff[rel_ind[0] - 1]
+                    if rel_coeff >= 0:
+                        # max {q * P(F a)} = q * max {P(F a)} for q>=0
                         formula = "Pmin=? [F \"" + rel_target + "\"]"
                     else:
+                        # max {q * P(F a)} = q * min {P(F a)} for q<0
                         formula = "Pmax=? [F \"" + rel_target + "\"]"
-                    properties = stormpy.parse_properties(formula)
-                    env = stormpy.Environment()
 
-                    if self.exact:
-                        pass
-                        # todo
-                    else:
-                        env.solver_environment.set_force_sound() # todo does this do anything?
-                        res = stormpy.model_checking(self.model,
-                                                     properties[0].raw_formula,
-                                                     only_initial_states=True,
-                                                     environment=env,
-                                                     extract_scheduler=self.witness)
-                        res_opt = res.at(state)
-                        # stormpy.model_checking currently does not return sound lower and upper bound
-                        # to remain sound we need to acknowledge that this is only an approximative result
-                        res_opt_under = res_opt / (1 + 0.000001)
-                        res_opt_over = res_opt / (1 - 0.000001)
-
-                        res_min_dict[(state,schedind)] = (rel_coeff * res_opt_under, rel_coeff * res_opt_over)
-
-                        if self.witness:
-                            witness_min_dict[(state,schedind)] = res.scheduler
+                    res_min_dict, witness_min_dict = self.modelCheckSingle(formula, state, schedind, rel_coeff,
+                                                                           res_min_dict, witness_min_dict)
 
                 else:
-                    # we can use multi-objective model-checking
-                    rel_targets = [self.targets[i-1] for i in rel_ind]
-                    rel_coeffs = [self.coeff[i-1] for i in rel_ind]
-                    if self.exact:
-                        pass
-                        # todo
-                    else:
-                        formula_interm = "multi("
-                        for target in rel_targets:
-                            formula_interm += "Pmax=?  [F \"" + target + "\"], "
-                        formula = formula_interm[:-2] + ")"
-                        properties = stormpy.parse_properties(formula)
-                        env = stormpy.Environment()
+                    # we need to use multi-objective model-checking
+                    rel_targets = [self.targets[i - 1] for i in rel_ind]
+                    rel_coeffs = [self.coeff[i - 1] for i in rel_ind]
 
-                        res, resOver, sched = stormpy.compute_rel_reach_helper(env,
-                                                                               self.model,
-                                                                               properties[0].raw_formula,
-                                                                               rel_coeffs, # weightVector
-                                                                               self.witness)
-                        print(res)
-                        print(resOver)
-                        # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
-                        # to remain sound we need to acknowledge that this is only an approximative result
-                        res_under = res / (1 + 0.000001)
-                        res_over = res / (1 - 0.000001)
+                    # compute_rel_reach_helper takes care of correct weighting with weightVector=rel_coeffs and optimizing in correct direction
+                    formula_interm = "multi("
+                    for target in rel_targets:
+                        formula_interm += "Pmin=?  [F \"" + target + "\"], "
+                    formula = formula_interm[:-2] + ")"
 
-                        # compute_rel_reach_helper already takes care of correct weighting with weightVector=rel_coeffs
-                        res_min_dict[(state, schedind)] = (res_under, res_over)
+                    res_min_dict, witness_min_dict = self.modelCheckMulti(formula, state, schedind, rel_coeffs,
+                                                                          res_min_dict, witness_min_dict)
 
-                        if self.witness:
-                            witness_min_dict[(state,schedind)] = sched
+        # Step 4: aggregate and compare
+        if self.compOp in ['<=', '<', '=', '!=']:
+            max_sum_list = list(res_max_dict.values())
+            if self.exact:
+                max_sum = sum(max_sum_list)
+                max_sum_lower, max_sum_upper = max_sum, max_sum
+                common.colourerror("Max weighted sum: " + str(max_sum))
+            else:
+                max_sum_lower = sum([l for (l, _) in max_sum_list])
+                max_sum_upper = sum([u for (_, u) in max_sum_list])
+                common.colourerror("Lower bound for max weighted sum: " + str(max_sum_lower))
+                common.colourerror("Upper bound for max weighted sum: " + str(max_sum_upper))
+        if self.compOp in ['>=', '>', '=', '!=']:
+            min_sum_list = list(res_min_dict.values())
+            if self.exact:
+                min_sum = sum(min_sum_list)
+                min_sum_lower, min_sum_upper = min_sum, min_sum
+                common.colourerror("Min weighted sum: " + str(min_sum))
+            else:
+                min_sum_lower = sum([l for (l, _) in min_sum_list])
+                min_sum_upper = sum([u for (_, u) in min_sum_list])
+                common.colourerror("Lower bound for min weighted sum: " + str(min_sum_lower))
+                common.colourerror("Upper bound for min weighted sum: " + str(min_sum_upper))
 
-            if self.compOp in ['=', '>=', '>', '!=']:
-                # compute max
-                if len(rel_ind) == 1:
-                    if self.exact:
-                        pass
-                    else:
-                        pass
-                else:
-                    if self.exact:
-                        pass
-                    else:
-                        pass
-                pass
 
-        # Step 4: aggregate
-        if self.compOp in ['<=', '<']:
-            # todo
-            pass
-        elif self.compOp in ['>=', '>']:
-            #todo
-            pass
+        # todo output witnesses
+        if self.exact:
+            bound = Rational(self.coeff[-1])
+            bound_upper = bound + Rational(self.epsilon)
+            bound_lower = bound - Rational(self.epsilon)
+        else:
+            bound = self.coeff[-1]
+            bound_upper = bound + self.epsilon
+            bound_lower = bound - self.epsilon
+        if self.compOp == '<=':
+            if max_sum_lower > bound:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The max weighted sum (in case of non-exact comp.: its lower bound) is > specified bound" + str(bound))
+            elif max_sum_upper > bound:
+                # this can only happen if we do not do exact computations
+                common.colourerror(
+                    "Result unknown. "
+                    "The lower bound for the max weighted sum is <= specified bound" + str(bound) + " but the upper bound is > that")
+            else:  # max_sum_upper <= bound
+                common.colourerror(
+                    "Property holds! "
+                    "Max weighted sum (in case of non-exact comp.: its upper bound) <= specified bound " + str(bound))
+        elif self.compOp == '<':
+            if max_sum_lower >= bound:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The max weighted sum (in case of non-exact comp.: its lower bound) is >= specified bound " + str(bound))
+            elif max_sum_upper >= bound:
+                # this can only happen if we do not do exact computations
+                common.colourerror(
+                    "Result unknown. "
+                    "The lower bound for the max weighted sum is < specified bound" + str(bound) + " but the upper bound is >= that")
+            else:  # max_sum_upper < bound
+                common.colourerror(
+                    "Property holds! "
+                    "Max weighted sum (in case of non-exact comp.: its upper bound) < specified bound" + str(bound))
+
+        elif self.compOp == '>=':
+            if min_sum_upper < bound:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The min weighted sum (in case of non-exact comp.: its upper bound) is < specified bound " + str(bound))
+
+            elif min_sum_lower < bound:
+                common.colourerror(
+                    "Result unknown. "
+                    "The upper bound for the min weighted sum is >= specified bound " + str(bound) + " but the lower bound is < that")
+            else:
+                common.colourerror(
+                    "Property holds! "
+                    "Min weighted sum (in case of non-exact comp.: its lower bound) >= specified bound " + str(bound))
+        elif self.compOp == '>':
+            if min_sum_upper <= bound:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The min weighted sum (in case of non-exact comp.: its upper bound) is <= specified bound " + str(bound))
+            elif min_sum_lower <= bound:
+                common.colourerror(
+                    "Result unknown. "
+                    "The upper bound for the min weighted sum is > specified bound " + str(bound) + " but the lower bound is <= that")
+            else:
+                common.colourerror(
+                    "Property holds! "
+                    "Min weighted sum (in case of non-exact comp.: its lower bound) > specified bound " + str(bound))
+
         elif self.compOp == '=':
-            pass
+            if max_sum_lower > bound_upper:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The max weighted sum (in case of non-exact comp.: its lower bound) is > specified bound + epsilon " + str(bound_upper))
+            elif max_sum_upper > bound_upper:
+                # this can only happen for non-exact computation
+                common.colourerror(
+                    "Result unknown. "
+                    "The lower bound of the max weighted sum is <= specified bound + epsilon " + str(bound_upper) + " but the upper bound is > that")
+            elif min_sum_upper < bound_lower:
+                common.colourerror(
+                    "Property does not hold! "
+                    "The min weighted sum (in case of non-exact comp.: its upper bound) is < specified bound - epsilon " + str(bound_lower))
+            elif min_sum_lower < bound_lower:
+                common.colourerror(
+                    "Result unknown. "
+                    "The upper bound of the min weighted sum is >= specified bound - epsilon " + str(bound_lower) + " but the lower bound is < that")
+            else: # max_sum_upper <= bound_upper and min_sum_lower >= bound_lower:
+                common.colourerror(
+                    "Property holds! "
+                    "Max weighted sum (in case of non-exact comp.: its upper bound) is <= specified bound + epsilon " + str(bound_upper) +
+                    " and min weighted sum (in case of non-exact comp.: its lower bound) is >= specified bound - epsilon " + str(bound_lower))
+
         elif self.compOp == '!=':
-            pass
+            if max_sum_upper < bound_lower:
+                common.colourerror(
+                    "Property holds! "
+                    "Max weighted sum (in case of non-exact comp.: its upper bound) is < specified bound - epsilon " + str(bound_lower))
+            elif min_sum_lower > bound_upper:
+                common.colourerror(
+                    "Property holds! "
+                    "Min weighted sum (in case of non-exact comp.: its lower bound) is > specified bound + epsilon " + str(bound_upper))
+            # now max_sum_upper >= bound_lower and min_sum_lower <= bound_upper so either No or inconclusive
+            elif max_sum_lower < bound_lower:
+                common.colourerror(
+                    "Result unknown. "
+                    "The upper bound of the max weighted sum is >= specified bound - epsilon " + str(bound_lower) + " but the lower bound is <")
+            elif min_sum_upper > bound_upper:
+                common.colourerror(
+                    "Result unknown. "
+                    "The lower bound of the min weighted sum is <= specified bound + epsilon " + str(bound_upper) + " but the upper bound is >")
+            else:
+                common.colourerror(
+                    "Property does not hold! "
+                    "Max weighted sum (in case of non-exact comp.: its lower bound) is >= specified bound - epsilon " + str(bound_lower) +
+                    " and min weighted sum (in case of non-exact comp.: its upper bound) is <= specified bound + epsilon " + str(bound_upper) +
+                    " and hence there must exist witnesses achieving a value in [" + str(bound_lower) + "," + str(bound_upper) + "]")
 
     def modelCheckOld(self):
         target_a = self.targets[0]
@@ -200,7 +395,9 @@ class ModelChecker:
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                     res, _, sched = stormpy.compute_rel_reach_helper_exact(env, self.model,
-                                                                                  properties_a_minus_b[0].raw_formula, computeScheduler=self.witness)
+                                                                           properties_a_minus_b[0].raw_formula,
+                                                                           computeScheduler=self.witness)
+                    # res, resOver, sched = stormpy.compute_rel_reach_helper_exact(env, self.model, list(self.model.labeling.get_states("init1"))[0], properties_a_minus_b[0].raw_formula, [Rational(1), Rational(-1)], self.witness)
                     # todo , extract_scheduler=self.witness
                     if self.witness:
                         scheds_max = [sched]
@@ -208,7 +405,11 @@ class ModelChecker:
                     # Unexpected error encountered: Unable to convert function return value to a Python type! The signature was
                     # 	(env: stormpy.core.Environment, model: storm::models::sparse::Mdp<__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, storm::models::sparse::StandardRewardModel<__gmp_expr<__mpq_struct [1], __mpq_struct [1]> > >, formula: storm::logic::MultiObjectiveFormula) -> Tuple[__gmp_expr<__mpq_struct [1], __mpq_struct [1]>, __gmp_expr<__mpq_struct [1], __mpq_struct [1]>]
                 else:
-                    res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model,properties_a_minus_b[0].raw_formula, self.witness) # todo adjust new relreachhelper , [0.75,-0.75]
+                    res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model,
+                                                                           properties_a_minus_b[0].raw_formula,
+                                                                           self.witness)
+                    # todo adjust new relreachhelper
+                    # res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model, list(self.model.labeling.get_states("init1"))[0], properties_a_minus_b[0].raw_formula, [1,-1], self.witness)
                     print(res)
                     print(resOver)
                     # todo , extract_scheduler=self.witness
@@ -236,7 +437,8 @@ class ModelChecker:
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_max[i])
-                        common.colourerror("Maximizing witness schedulers written to files") #todo possibly for goal unfolding
+                        common.colourerror(
+                            "Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper > bound_x:
                     common.colourerror(
@@ -256,7 +458,8 @@ class ModelChecker:
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_max[i])
-                        common.colourerror("Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
+                        common.colourerror(
+                            "Maximizing witness schedulers written to files")  # todo possibly for goal unfolding
                     return -1
                 elif max_diff_upper >= bound:
                     common.colourerror(
@@ -285,7 +488,7 @@ class ModelChecker:
                             1] + ")} is < " + str(bound) + "-" + str(self.epsilon))
                     return 1
                 assert (res_first != 1) and not (
-                            res_first is None), "Something went wrong. res_first should be defined, but not 1 if we reach this statement"
+                        res_first is None), "Something went wrong. res_first should be defined, but not 1 if we reach this statement"
 
         if self.compOp in ['=', '>=', '>', '!=']:
             # "forall sched P(F a) - P(F b) > / >= bound" is violated iff "min {P(F a) - P(F b)} <= / < bound"
@@ -334,7 +537,8 @@ class ModelChecker:
                     max_b_over = max_b / (1 - 0.000001)
 
                     res = min_a - max_b
-                    scheds_min = [res_a.scheduler, res_b.scheduler]
+                    if self.witness:
+                        scheds_min = [res_a.scheduler, res_b.scheduler]
                     min_diff_upper, min_diff_lower = min_a_under - max_b_over, min_a_over - max_b_under
 
             else:  # not make_copies
@@ -349,13 +553,21 @@ class ModelChecker:
                     env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
                     env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
                     res, _, sched = stormpy.compute_rel_reach_helper_exact(env, self.model,
-                                                                                  properties_b_minus_a[0].raw_formula, self.witness)
+                                                                           properties_b_minus_a[0].raw_formula,
+                                                                           self.witness)
+                    # res, resOver, sched = stormpy.compute_rel_reach_helper_exact(env, self.model, list(self.model.labeling.get_states("init1"))[0], properties_b_minus_a[0].raw_formula, [Rational(1), Rational(-1)],self.witness)
                     # todo extract schedulers
                     if self.witness:
                         scheds_min = [sched]
                     res_lower, res_upper = res, res
                 else:
-                    res, _, sched = stormpy.compute_rel_reach_helper(env, self.model, properties_a_minus_b[0].raw_formula, self.witness) # todo adjust new relreachhelper , [1.0, -1.0]
+                    res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model,
+                                                                           properties_a_minus_b[0].raw_formula,
+                                                                           self.witness)
+                    # todo adjust new relreachhelper
+                    # res, resOver, sched = stormpy.compute_rel_reach_helper(env, self.model, list(self.model.labeling.get_states("init1"))[0], properties_b_minus_a[0].raw_formula, [1.0, -1.0], self.witness)
+                    print(res)
+                    print(resOver)
                     # StandardPcaaWeightVectorChecker currently returns (lower + upper)/2 for both res_u and res_o
                     if self.witness:
                         scheds_min = [sched]
@@ -383,7 +595,8 @@ class ModelChecker:
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_min[i])
-                        common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+                        common.colourerror(
+                            "Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
 
                     return -1
                 elif min_diff_lower < bound_x:
@@ -407,7 +620,8 @@ class ModelChecker:
                             with open(file_name, 'w') as f:
                                 with redirect_stdout(f):
                                     print(scheds_min[i])
-                        common.colourerror("Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
+                        common.colourerror(
+                            "Minimizing witness schedulers written to files")  # todo possibly for goal unfolding
 
                     return -1
                 elif min_diff_lower <= bound:
@@ -473,7 +687,7 @@ class ModelChecker:
                             common.colourerror(
                                 "Maximizing schedulers are already witnesses. Schedulers written to files")  # todo possibly for goal unfolding
                         else:
-                            lambda_witness = (bound - v_max)/(v_min - v_max)
+                            lambda_witness = (bound - v_max) / (v_min - v_max)
                             for i in range(len(scheds_max)):
                                 file_name = 'logs/scheduler_max_' + str(i) + '_' + str(time.perf_counter()) + '.txt'
                                 with open(file_name, 'w') as f:
@@ -488,9 +702,12 @@ class ModelChecker:
                                         print(scheds_min[i])
                             common.colourerror(
                                 "Minimizing schedulers written to files")  # todo possibly for goal unfolding
-                            common.colourerror("Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(lambda_witness))
+                            common.colourerror(
+                                "Counterexample witness schedulers are the convex combination of min and max schedulers w.r.t. lambda=" + str(
+                                    lambda_witness))
                         end_witness_time = time.perf_counter()
-                        common.colourinfo("Writing witness files took: " + str(round(end_witness_time - start_witness_time, 2)) + " seconds", True)
+                        common.colourinfo("Writing witness files took: " + str(
+                            round(end_witness_time - start_witness_time, 2)) + " seconds", True)
                         # todo record time in the other cases
                     return -1
                 elif res_first == -1 and res_second == 0:

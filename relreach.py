@@ -59,22 +59,20 @@ def main():
         common.colourinfo("Number of transitions: {0}".format(parsed_model.nr_transitions))
         common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
-        # assert each init label labels exactly one state and store which indices are associated with which initial state
-        stateList = []
-        stateIndexDict = {}
+        # assert each init label labels exactly one state, create state-sched-combinations and store which indices are associated with which initial state
+        state_sched_comb = set()
+        ind_dict = {}
         for i in range(1,numInit+1):
             states_i = list(parsed_model.labeling.get_states(f"init{i}"))
             assert len(states_i) == 1, f"More than a single state is labeled with init{i}"
-            stateList.append(states_i[0])
-            if states_i[0] in stateIndexDict.keys():
-                stateIndexDict[states_i[0]].append(i)
+            comb = (states_i[0], schedList[i-1])
+            state_sched_comb.add(comb)
+            if comb in ind_dict.keys():
+                ind_dict[comb].append(i)
             else:
-                stateIndexDict[states_i[0]] = [i]
+                ind_dict[comb] = [i]
 
-        # create state-scheduler-combinations
-        state_sched_comb = list(set(zip(stateList, schedList)))
-        ind_dict = {(st,sched) : stateIndexDict[st] for (st,sched) in state_sched_comb} # which initial state /summand indices belong to each state-sched-comb
-
+        print(ind_dict)
         # todo remove hardcoding
         make_copies = False
         if len(state_sched_comb) > 1:
