@@ -106,3 +106,12 @@ Note: We use assertions for verifying the format of the input arguments. Disable
 - (1sched1s) --modelPath ./benchmark/TL/tl_mult-init.nm --numScheds 1 --numInit 2 --targets j0 j0 --schedList 1 1 --coefficient 1 -1 0
   - Expected:
   - Returns: Yes
+- m>2: 
+  - --modelPath ./benchmark/TL/tl_8.nm --numInit 3 --numScheds 1 --schedList 1 1 1 --targets j0 j1 j2  --coefficient 1 1 1 0 --comparisonOperator >=
+    - Returns: Yes
+  - --modelPath ./benchmark/TL/tl_8.nm --numInit 3 --numScheds 1 --schedList 1 1 1 --targets j0 j1 j2  --coefficient 1 1 1 0 --comparisonOperator >
+    - Returns: No
+  - --modelPath ./benchmark/TL/tl_8.nm --numInit 3 --numScheds 2 --schedList 1 2 1 --targets j0 j1 j2 --coefficient 1 1 1 3 --comparisonOperator < --exact
+    - Returns: False
+  - --modelPath ./benchmark/TL/tl_8.nm --numInit 3 --numScheds 2 --schedList 1 2 1 --targets j0 j1 j2 --coefficient 1 1 1 3 --comparisonOperator <= --exact
+    - Returns: True
