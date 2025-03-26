@@ -6,20 +6,21 @@ import stormpy
 
 import os
 import time
+import datetime
 
 def main():
     try:
         start_time = time.perf_counter()
-
         input_args = parseArguments()
 
         model = Model(input_args.modelPath)
         numScheds = input_args.numScheds # n
         numInit = input_args.numInit # m
-        schedList = input_args.schedList
+        schedList = input_args.schedList # family of indices k_1 ... k_m
         targets = input_args.targets
-        coeff = input_args.coefficient
+        coeff = input_args.coefficient # q_1, ..., q_{m+1}
         compOp = input_args.comparisonOperator
+
         exact = input_args.exact
         witness = input_args.witness
 
@@ -32,38 +33,38 @@ def main():
             epsilon = 0
 
         if numInit < numScheds:
-            common.colourerror("At least one scheduler is lonely: Number of initial states < number of schedulers. Will assume numScheds := numInit.")
+            common.colourerror("At least one scheduler is lonely: Number of initial state labels < number of schedulers. Will assume numScheds := numInit.")
             numScheds = numInit
 
-        assert len(targets) == numInit, "Number of target labels does not match number of initial states."
-        assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial states + 1."
+        assert len(targets) == numInit, "Number of target labels does not match number of initial state labels."
+        assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial state labels + 1."
         assert len(schedList) == numInit, "Size of scheduler list does not match number of initial state labels."
         assert set(schedList) == set(range(1,numScheds+1)), "List of schedulers does not cover the range {1,...,numScheds} or exceeds it."
 
+        # prepare for storing witness schedulers+
+        log_dir = None
         if witness:
-            # create folder for storing witness schedulers
-            if not os.path.exists('logs'):
-                os.makedirs('logs')
-                # todo clean folder or make a separate folder for each run
+            cur_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
+            model_id = os.path.basename(input_args.modelPath)
+            log_dir = f"logs/{cur_time}_{model_id}"
 
         # Parse + build MDP
         options = stormpy.BuilderOptions()
         options.set_build_state_valuations()
         options.set_build_all_labels()
 
-        # Model-checking
-        common.colourinfo("Parsing + building model...")
-        parsed_model = model.parseModel(exact, options)
+        common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Parsing + building model...")
+        model.parseModel(exact, options)
         parsing_time = time.perf_counter()
-        common.colourinfo("Number of states: {0}".format(parsed_model.nr_states))
-        common.colourinfo("Number of transitions: {0}".format(parsed_model.nr_transitions))
+        common.colourinfo("Number of states: {0}".format(model.parsed_model.nr_states), False)
+        common.colourinfo("Number of transitions: {0}".format(model.parsed_model.nr_transitions), False)
         common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
         # assert each init label labels exactly one state, create state-sched-combinations and store which indices are associated with which initial state
         state_sched_comb = set()
         ind_dict = {}
         for i in range(1,numInit+1):
-            states_i = list(parsed_model.labeling.get_states(f"init{i}"))
+            states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
             assert len(states_i) == 1, f"More than a single state is labeled with init{i}"
             comb = (states_i[0], schedList[i-1])
             state_sched_comb.add(comb)
@@ -71,22 +72,17 @@ def main():
                 ind_dict[comb].append(i)
             else:
                 ind_dict[comb] = [i]
+        common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
 
-        print(ind_dict)
-        # todo remove hardcoding
-        make_copies = False
-        if len(state_sched_comb) > 1:
-            # if we do not have 1 scheduler and 1 initial state, then we make 2 copies of the MDP
-            make_copies = True
-
+        # Model-checking
         if not input_args.checkModel:
-            modelchecker = ModelChecker(parsed_model, make_copies, state_sched_comb, ind_dict, targets, compOp, coeff, exact, epsilon, witness)
-            res = modelchecker.modelCheck()
-            # todo if witness and not make_copies:
-            #    common.colourinfo("Note that output witness schedulers are defined on the goal unfolding not the original MDP")
+            modelchecker = ModelChecker(model.parsed_model, ind_dict, targets, compOp, coeff, exact, epsilon, witness, log_dir)
+            modelchecker.modelCheck()
 
+        # Output statistics
         end_time = time.perf_counter()
-        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", True)
+        common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Finished. Statistics:")
+        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False)
         common.colourinfo("Total time: " + str(round(end_time - start_time, 2)) + " seconds", False)
 
     except Exception as err:
