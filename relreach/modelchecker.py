@@ -117,8 +117,7 @@ class ModelChecker:
     # Main model-checking function
     def modelCheck(self):
         # Step 3: compute min and/or max for each state-scheduler combination
-        # for each key, we store: if exact: single exact result, else tuples consisting of lower and upper bound
-        common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Computing min and/or max weighted sum for each state-scheduler combination...")
+        # for each combination, we store: if exact: single exact result, else tuples consisting of lower and upper bound
         res_min_dict = {k: [] for k in self.ind_dict.keys()}  # todo change to list?
         res_max_dict = {k: [] for k in self.ind_dict.keys()}
         if self.witness:
@@ -128,12 +127,27 @@ class ModelChecker:
             witness_min_dict = None
             witness_max_dict = None
 
-        for (state, schedind) in self.ind_dict.keys():
-            rel_ind = self.ind_dict[(state, schedind)]
+        if self.exact:
+            bound = Rational(self.coeff[-1])
+            bound_upper = bound + Rational(self.epsilon)
+            bound_lower = bound - Rational(self.epsilon)
+        else:
+            bound = self.coeff[-1]
+            bound_upper = bound + self.epsilon
+            bound_lower = bound - self.epsilon
+        bound_upper_str = str(float(bound_upper)) + " (specified bound + epsilon)"
+        bound_lower_str = str(float(bound_lower)) + " (specified bound - epsilon)"
 
-            # compute min and/or max
-            if self.compOp in ['<=', '<', '=', '!=']:
-                # forall sched P(F a) < bound iff max {P(F a)} < bound
+        # for equality, we have to check whether <= and >= hold. For efficiency, we first check <= and check whether we can already conclude that the property does not hold
+        # for disequality, we have to check whether < or > hold. For efficiency, we first check < and check whether we can already conclude that the property holds
+        if self.compOp in ['<=', '<', '=', '!=']:
+            # forall sched P(F a) < bound iff max {P(F a)} < bound
+            common.colourinfo(
+                f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Computing max weighted sum for each state-scheduler combination...")
+
+            for (state, schedind) in self.ind_dict.keys():
+                rel_ind = self.ind_dict[(state, schedind)]
+
                 if len(rel_ind) == 1:
                     # we can use single-objective model-checking
                     rel_target = self.targets[rel_ind[0] - 1]
@@ -162,8 +176,55 @@ class ModelChecker:
                     res_max_dict, witness_max_dict = self.modelCheckMulti(formula, state, schedind, rel_coeffs,
                                                                           res_max_dict, witness_max_dict)
 
-            if self.compOp in ['>=', '>', '=', '!=']:
-                # forall sched P(F a) > bound iff min {P(F a)} > bound
+
+            # Compute the sums
+            common.colourinfo(
+                f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Aggregating maximal values...")
+            max_sum_list = list(res_max_dict.values())
+            if self.exact:
+                max_sum = sum(max_sum_list)
+                max_sum_lower, max_sum_upper = max_sum, max_sum
+                common.colourinfo("Max weighted sum: " + str(max_sum), False)
+            else:
+                max_sum_lower = sum([l for (l, _) in max_sum_list])
+                max_sum_upper = sum([u for (_, u) in max_sum_list])
+                common.colourinfo("Lower bound for max weighted sum: " + str(max_sum_lower), False)
+                common.colourinfo("Upper bound for max weighted sum: " + str(max_sum_upper), False)
+            if self.witness:
+                max_sum_approx = sum([approx_res for (_, approx_res) in witness_max_dict.values()])
+
+            # for = / !=: check whether we can already conclude the property does not / does hold and terminate early
+            if self.compOp == '=':
+                if max_sum_lower > bound_upper:
+                    common.colourinfo(
+                        "Property does not hold! "
+                        "The max weighted sum (in case of non-exact comp.: its lower bound) is > " + bound_upper_str)
+                    if self.witness:
+                        self.store_witness(witness_max_dict, "max")
+                        common.colourinfo("Maximizing schedulers written to " + self.log_dir, False)
+                    return -1
+                elif max_sum_upper > bound_upper:
+                    # this can only happen for non-exact computation
+                    common.colourinfo(
+                        "Result unknown. "
+                        "The lower bound of the max weighted sum is <= " + bound_upper_str + " but the upper bound is > that")
+                    return 0
+
+            elif self.compOp == '!=':
+                if max_sum_upper < bound_lower:
+                    common.colourinfo(
+                        "Property holds! "
+                        "Max weighted sum (in case of non-exact comp.: its upper bound) is < " + bound_lower_str)
+                    return 1
+
+        if self.compOp in ['>=', '>', '=', '!=']:
+            # forall sched P(F a) > bound iff min {P(F a)} > bound
+            common.colourinfo(
+                f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Computing min weighted sum for each state-scheduler combination...")
+
+            for (state, schedind) in self.ind_dict.keys():
+                rel_ind = self.ind_dict[(state, schedind)]
+
                 if len(rel_ind) == 1:
                     rel_target = self.targets[rel_ind[0] - 1]
                     rel_coeff = self.coeff[rel_ind[0] - 1]
@@ -191,23 +252,10 @@ class ModelChecker:
                     res_min_dict, witness_min_dict = self.modelCheckMulti(formula, state, schedind, rel_coeffs,
                                                                           res_min_dict, witness_min_dict)
 
-        # Step 4: aggregate and compare
-        common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Aggregating results and comparing with bound...")
-        # Compute the sum(s)
-        if self.compOp in ['<=', '<', '=', '!=']:
-            max_sum_list = list(res_max_dict.values())
-            if self.exact:
-                max_sum = sum(max_sum_list)
-                max_sum_lower, max_sum_upper = max_sum, max_sum
-                common.colourinfo("Max weighted sum: " + str(max_sum), False)
-            else:
-                max_sum_lower = sum([l for (l, _) in max_sum_list])
-                max_sum_upper = sum([u for (_, u) in max_sum_list])
-                common.colourinfo("Lower bound for max weighted sum: " + str(max_sum_lower), False)
-                common.colourinfo("Upper bound for max weighted sum: " + str(max_sum_upper), False)
-            if self.witness:
-                max_sum_approx = sum([approx_res for (_, approx_res) in witness_max_dict.values()])
-        if self.compOp in ['>=', '>', '=', '!=']:
+            # Compute the sum(s)
+            common.colourinfo(
+                f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Aggregating minimal values...")
+
             min_sum_list = list(res_min_dict.values())
             if self.exact:
                 min_sum = sum(min_sum_list)
@@ -221,18 +269,8 @@ class ModelChecker:
             if self.witness:
                 min_sum_approx = sum([approx_res for (_, approx_res) in witness_min_dict.values()])
 
-        # Compare sum(s) to bound, output result with brief explanation and store witnesses if desired
-        if self.exact:
-            bound = Rational(self.coeff[-1])
-            bound_upper = bound + Rational(self.epsilon)
-            bound_lower = bound - Rational(self.epsilon)
-        else:
-            bound = self.coeff[-1]
-            bound_upper = bound + self.epsilon
-            bound_lower = bound - self.epsilon
-        bound_upper_str = str(float(bound_upper)) + " (specified bound + epsilon)"
-        bound_lower_str = str(float(bound_lower)) + " (specified bound - epsilon)"
 
+        # Step 4: Compare sum(s) to bound, output result with brief explanation and store witnesses if desired
         if self.compOp == '<=':
             if max_sum_lower > bound:
                 common.colourinfo(
@@ -242,6 +280,7 @@ class ModelChecker:
                 if self.witness:
                     self.store_witness(witness_max_dict, "max")
                     common.colourinfo("Maximizing schedulers written to " + self.log_dir, False)
+                return -1
 
             elif max_sum_upper > bound:
                 # this can only happen if we do not do exact computations
@@ -249,10 +288,12 @@ class ModelChecker:
                     "Result unknown. "
                     "The lower bound for the max weighted sum is <= specified bound " + str(
                         bound) + " but the upper bound is > that")
+                return 0
             else:  # max_sum_upper <= bound
                 common.colourinfo(
                     "Property holds! "
                     "Max weighted sum (in case of non-exact comp.: its upper bound) <= specified bound " + str(bound))
+                return 1
 
         elif self.compOp == '<':
             if max_sum_lower >= bound:
@@ -263,17 +304,21 @@ class ModelChecker:
                 if self.witness:
                     self.store_witness(witness_max_dict, "max")
                     common.colourinfo("Maximizing schedulers written to " + self.log_dir, False)
+                return -1
 
             elif max_sum_upper >= bound:
                 # this can only happen if we do not do exact computations
+                assert (not self.exact), "Something went wrong. upper bound of max sum >= bound but lower bound of max sum < bound even though we do exact computations"
                 common.colourinfo(
                     "Result unknown. "
                     "The lower bound for the max weighted sum is < specified bound " + str(
                         bound) + " but the upper bound is >= that")
+                return 0
             else:  # max_sum_upper < bound
                 common.colourinfo(
                     "Property holds! "
                     "Max weighted sum (in case of non-exact comp.: its upper bound) < specified bound " + str(bound))
+                return 1
 
         elif self.compOp == '>=':
             if min_sum_upper < bound:
@@ -284,15 +329,18 @@ class ModelChecker:
                 if self.witness:
                     self.store_witness(witness_min_dict, "min")
                     common.colourinfo("Minimizing schedulers written to " + self.log_dir, False)
+                return -1
             elif min_sum_lower < bound:
                 common.colourinfo(
                     "Result unknown. "
                     "The upper bound for the min weighted sum is >= specified bound " + str(
                         bound) + " but the lower bound is < that")
+                return 0
             else:
                 common.colourinfo(
                     "Property holds! "
                     "Min weighted sum (in case of non-exact comp.: its lower bound) >= specified bound " + str(bound))
+                return 1
 
         elif self.compOp == '>':
             if min_sum_upper <= bound:
@@ -303,64 +351,61 @@ class ModelChecker:
                 if self.witness:
                     self.store_witness(witness_min_dict, "min")
                     common.colourinfo("Minimizing schedulers written to " + self.log_dir, False)
+                return -1
             elif min_sum_lower <= bound:
                 common.colourinfo(
                     "Result unknown. "
                     "The upper bound for the min weighted sum is > specified bound " + str(
                         bound) + " but the lower bound is <= that")
+                return 0
             else:
                 common.colourinfo(
                     "Property holds! "
                     "Min weighted sum (in case of non-exact comp.: its lower bound) > specified bound " + str(bound))
+                return 1
 
         elif self.compOp == '=':
-            if max_sum_lower > bound_upper:
-                common.colourinfo(
-                    "Property does not hold! "
-                    "The max weighted sum (in case of non-exact comp.: its lower bound) is > " + bound_upper_str)
-                if self.witness:
-                    self.store_witness(witness_max_dict, "max")
-                    common.colourinfo("Maximizing schedulers written to " + self.log_dir, False)
-            elif max_sum_upper > bound_upper:
-                # this can only happen for non-exact computation
-                common.colourinfo(
-                    "Result unknown. "
-                    "The lower bound of the max weighted sum is <= " + bound_upper_str + " but the upper bound is > that")
-            elif min_sum_upper < bound_lower:
+            # we know max_sum_lower <= bound_upper and max_sum_upper <= bound_upper, else we would have already terminated
+            assert (max_sum_lower <= bound_upper and max_sum_upper <= bound_upper), "Something went wrong. Lower and upper bound for max sum <= bound (+epsilon) but we did not terminate early"
+            if min_sum_upper < bound_lower:
                 common.colourinfo(
                     "Property does not hold! "
                     "The min weighted sum (in case of non-exact comp.: its upper bound) is < " + bound_lower_str)
                 if self.witness:
                     self.store_witness(witness_min_dict, "min")
                     common.colourinfo("Minimizing schedulers written to " + self.log_dir, False)
+                return -1
             elif min_sum_lower < bound_lower:
                 common.colourinfo(
                     "Result unknown. "
                     "The upper bound of the min weighted sum is >= " + bound_lower_str + " but the lower bound is < that")
+                return 0
             else:  # max_sum_upper <= bound_upper and min_sum_lower >= bound_lower:
                 common.colourinfo(
                     "Property holds! "
                     "Max weighted sum (in case of non-exact comp.: its upper bound) is <= " + bound_upper_str +
                     " and min weighted sum (in case of non-exact comp.: its lower bound) is >= " + bound_lower_str)
+                return 1
 
         elif self.compOp == '!=':
-            if max_sum_upper < bound_lower:
-                common.colourinfo(
-                    "Property holds! "
-                    "Max weighted sum (in case of non-exact comp.: its upper bound) is < " + bound_lower_str)
-            elif min_sum_lower > bound_upper:
+            # we know max_sum_upper >= bound_lower, else we would have already terminated
+            assert (max_sum_upper >= bound_lower), "Something went wrong. Upper bound for max sum >= bound (-epsilon) but we did not terminate early"
+            if min_sum_lower > bound_upper:
                 common.colourinfo(
                     "Property holds! "
                     "Min weighted sum (in case of non-exact comp.: its lower bound) is > " + bound_upper_str)
+                return 1
             # now max_sum_upper >= bound_lower and min_sum_lower <= bound_upper so either No or inconclusive
             elif max_sum_lower < bound_lower:
                 common.colourinfo(
                     "Result unknown. "
                     "The upper bound of the max weighted sum is >= " + bound_lower_str + " but the lower bound is <")
+                return 0
             elif min_sum_upper > bound_upper:
                 common.colourinfo(
                     "Result unknown. "
                     "The lower bound of the min weighted sum is <= " + bound_upper_str + " but the upper bound is >")
+                return 0
             else:
                 common.colourinfo("Property does not hold! ")
                 common.colourinfo(
@@ -377,3 +422,4 @@ class ModelChecker:
                     self.store_witness(witness_max_dict, "max")
                     self.store_witness(witness_min_dict, "min")
                     common.colourinfo("Maximizing and minimizing schedulers written to " + self.log_dir, False)
+                return -1
