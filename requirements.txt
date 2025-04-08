@@ -1,4 +1,3 @@
-# wheel
 pycarl==2.3.0
 stormpy @ git+https://github.com/carolinager/stormpy@relreach-full
 termcolor

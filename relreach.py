@@ -65,7 +65,7 @@ def main():
         ind_dict = {}
         for i in range(1,numInit+1):
             states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
-            assert len(states_i) == 1, f"More than a single state is labeled with init{i}"
+            assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
             comb = (states_i[0], schedList[i-1])
             state_sched_comb.add(comb)
             if comb in ind_dict.keys():

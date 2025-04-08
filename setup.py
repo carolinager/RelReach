@@ -1,4 +1,5 @@
 from setuptools import setup, find_packages
+import importlib.util
 import sys
 
 # if sys.version_info[0] == 2:
@@ -6,25 +7,22 @@ import sys
 
 setup(
     name='relreach',
-    version='0.0',
+    version='1.0',
     description='Model checker for Relational Reachability Properties',
     author='Lina Gerlach',
     author_email='gerlach@cs.rwth-aachen.com',
     packages=find_packages(),
     install_requires=[
-        'stormpy>=1.6.3',
-        'lark-parser',
-        'z3-solver==4.11.2',
-        'termcolor'
+        'termcolor',
+        'stormpy @ git+https://github.com/carolinager/stormpy.git@relreach-full#egg=stormpy', 
+        'pycarl==2.3.0',
     ],
-    # python_requires='>=3.9',
 
+    # todo
+    # python_requires='>=3.9',
     # classifiers=[
-    #     'Environment :: MacOS X',
     #     'Intended Audience :: Science/Research',
     #     'License :: OSI Approved :: MIT License',
-    #     'Operating System :: MacOS :: MacOS X',
-    #     'Operating System :: MacOS :: MacOS X',
     #     'Programming Language :: Python :: 3.9',
     #     'Topic :: Scientific/Engineering',
     #     'Topic :: Software Development :: Libraries :: Python Modules'
