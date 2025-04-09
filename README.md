@@ -80,13 +80,10 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
 
 
 ## Tested with:
-- storm>=1.9.0 master branch
+- storm=1.9.0 master branch
 - carl-storm 14.28
 - stormpy fork, relreach-full branch: https://github.com/carolinager/stormpy/tree/relreach-full
   - Note: ensure correct storm version is used when building stormpy!
 - pycarl 2.3.0
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk
-
-
-## Authors
