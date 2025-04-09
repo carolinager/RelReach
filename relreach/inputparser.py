@@ -10,8 +10,8 @@ def parseArguments():
     parser.add_argument('-t', '--targets', required=True, nargs='+', type=str, help='list of target labels')
     parser.add_argument('-coe', '--coefficient', required=True, nargs='+', type=float, help='list of coefficients')
     # optional, concerning property
-    parser.add_argument('-cop', '--comparisonOperator', choices=['=', '<', '>', '<=', '>=', '!=', 'app'], default='=', help='comparison operator')
-    parser.add_argument('-eps', '--epsilon', type=float, default=0, help='epsilon')
+    parser.add_argument('-cop', '--comparisonOperator', choices=['=', '<', '>', '<=', '>=', '!='], default='=', help='comparison operator. Default is =')
+    parser.add_argument('-eps', '--epsilon', type=float, default=0, help='epsilon. Default is 0')
     # optional, concerning computation
     parser.add_argument('-cM', '--checkModel', action='store_true', help='check if model file can be parsed')
     parser.add_argument('-ex', '--exact', action='store_true', help='activate exact computation')
