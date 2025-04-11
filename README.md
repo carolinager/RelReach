@@ -1,10 +1,15 @@
 # RelReach
 
-Tool for checking universally quantified relational reachability properties
-like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?",
-working on top of storm.
+RelReach implements the model-checking algorithm for relational reachability properties presented in the CAV25 paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
+More precisely, it allows to check universally quantified relational reachability properties
+like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?".
+RelReach works on top of storm(py).
 
 ## Usage
+
+### Docker (Recommended)
+A docker image for the tool is provided on Zenodo.
+
 ### Arguments:
 #### Required Arguments:
 - ```--modelPath```: path to MDP model file
@@ -31,6 +36,26 @@ working on top of storm.
 We assume the model has exactly one state labeled "init{i}" for each i=1, ..., ```numInit```.
 E.g., if numInit=2 we expect there to be exactly one state labeled "init1" and exactly one state labeled "init2".
 Note that this includes models where there is a single state labeled both "init1" and "init2".
+
+
+### Installation (Not recommended)
+
+- Begin by cloning this folder locally:
+```
+git clone https://github.com/carolinager/RelReach
+```
+
+- Install the dependencies listed in `RelReach/requirements.txt`.
+  Most importantly, RelReach depends on [pycarl](https://moves-rwth.github.io/pycarl) and a [fork](https://github.com/carolinager/stormpy/tree/relreach-full) of [stormpy](https://github.com/moves-rwth/stormpy) which have their own dependencies.
+  Further, stormpy requires [storm](https://www.stormchecker.org) and pycarl requires [carl-storm](https://github.com/moves-rwth/carl-storm/).
+  The concrete versions with which our implementation was tested are listed in `RelReach/requirements.txt`.
+  For instructions how to install these dependencies, we refer to the installation instructions provided on the respective websites.
+
+- You can now execute commands by running
+```
+python3 relreach.py <command>
+```
+See above for an explanation of the arguments as well as sample commands.
 
 
 ## Sample Commands
