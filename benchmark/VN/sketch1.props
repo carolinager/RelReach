@@ -1,0 +1,4 @@
+ES sched1
+E s0(sched1) 
+Restrict s0 init1 
+P{s0}[F "res_is_0"] < P{s0}[F "res_is_1"] || P{s0}[F "res_is_0"] > P{s0}[F "res_is_1"]
