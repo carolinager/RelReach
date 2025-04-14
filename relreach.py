@@ -58,7 +58,7 @@ def main():
         parsing_time = time.perf_counter()
         common.colourinfo("Number of states: {0}".format(model.parsed_model.nr_states), False)
         common.colourinfo("Number of transitions: {0}".format(model.parsed_model.nr_transitions), False)
-        common.colourinfo("Parsing took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
+        common.colourinfo("Building the model took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
         # assert each init label labels exactly one state, create state-sched-combinations and store which indices are associated with which initial state
         state_sched_comb = set()
