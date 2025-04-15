@@ -8,8 +8,8 @@ RelReach works on top of storm(py).
 ## Usage
 
 ### Docker (Recommended)
-A docker image for the tool is provided on [Zenodo](www.doi.org/10.5281/zenodo.15209575), as part of the artifact for the CAV paper. 
-DOI: 10.5281/zenodo.15209575
+A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574), as part of the artifact for the CAV paper. 
+DOI: 10.5281/zenodo.15209574
 
 ### Arguments:
 #### Required Arguments:
