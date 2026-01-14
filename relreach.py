@@ -20,6 +20,7 @@ def main():
         targets = input_args.targets
         coeff = input_args.coefficient # q_1, ..., q_{m+1}
         compOp = input_args.comparisonOperator
+        buechi = input_args.buechi
 
         exact = input_args.exact
         witness = input_args.witness
@@ -74,9 +75,17 @@ def main():
                 ind_dict[comb] = [i]
         common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
 
+        processed_model = model.parsed_model
+        if buechi:
+            # construct MEC quotient
+            # processed_model =
+            # construct success sets
+            # targets =
+            pass
+
         # Model-checking
         if not input_args.checkModel:
-            modelchecker = ModelChecker(model.parsed_model, ind_dict, targets, compOp, coeff, exact, epsilon, witness, log_dir)
+            modelchecker = ModelChecker(processed_model, ind_dict, targets, compOp, coeff, exact, epsilon, witness, log_dir)
             modelchecker.modelCheck()
 
         # Output statistics
