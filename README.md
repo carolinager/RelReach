@@ -76,7 +76,7 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
   - Returns "No" instantly
 
 #### Different states labeled "init1" and "init2"
-- TA, m=8: ```--modelPath ./benchmark/TL/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
+- TA, m=8: ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
   - Analogously for the other variants (m=4,6,8) and all initial-state-combinations
 - TS ```--modelPath ./benchmark/TS/th0_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets terml1 terml1 --coefficient 1 -1 0``` and same for ```terml2```
@@ -101,8 +101,8 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
 - SD: ```--modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 -cop '>'```
   - Returns "No" instantly for all models, also for ```- cop >=```
   - Analogously for the other maze variants
-- TL: ```--modelPath ./benchmark/TL/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
-  - Returns "No" instantly, already for target j0 alone (this property is equiv to TL with ```--numScheds 2```)
+- TA: ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
+  - Returns "No" instantly, already for target j0 alone (this property is equiv to TA with ```--numScheds 2```)
 
 
 ## Tested with:
