@@ -3,6 +3,8 @@
 
 mdp
 
+const int N = 4;   // number of processes
+
 // variables to represent whether a process has a token or not
 // note they are global because they can be updated by other processes
 global q1  : [0..1];
@@ -22,10 +24,6 @@ endmodule
 module process2 = process1 [ q1=q2, q2=q3, q3=q4, q4=q1 ] endmodule
 module process3 = process1 [ q1=q3, q2=q4, q3=q1, q4=q2 ] endmodule
 
-// cost - 1 in each state (expected steps)
-rewards "steps"
-	true : 1;
-endrewards
 
 // formula, for use here and in properties: number of tokens
 formula num_tokens = q1+q2+q3+q4;
@@ -34,3 +32,13 @@ formula num_tokens = q1+q2+q3+q4;
 init
 	num_tokens >= 1
 endinit
+
+label "t1" = (q1=1);
+label "t2" = (q2=1);
+label "t3" = (q3=1);
+label "t4" = (q4=1);
+
+label "init1" = (num_tokens=N);
+label "init2" = (num_tokens=N);
+label "init3" = (num_tokens=N);
+label "init4" = (num_tokens=N);
