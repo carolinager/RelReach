@@ -167,7 +167,6 @@ def main():
         buechi = input_args.buechi
 
         exact = input_args.exact
-        witness = input_args.witness
 
         # correctness checks
         if compOp in ['=', '!=']:
@@ -185,13 +184,6 @@ def main():
         assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial state labels + 1."
         assert len(schedList) == numInit, "Size of scheduler list does not match number of initial state labels."
         assert set(schedList) == set(range(1,numScheds+1)), "List of schedulers does not cover the range {1,...,numScheds} or exceeds it."
-
-        # prepare for storing witness schedulers+
-        log_dir = None
-        if witness:
-            cur_time = datetime.datetime.now().strftime("%Y%m%d%H%M%S%f")
-            model_id = os.path.basename(input_args.modelPath)
-            log_dir = f"logs/{cur_time}_{model_id}"
 
         # Parse + build MDP
         options = stormpy.BuilderOptions()
@@ -237,7 +229,7 @@ def main():
         # Model-checking
         if not input_args.checkModel:
             modelchecker = ModelChecker(processed_model, processed_ind_dict, processed_targets,
-                                        compOp, coeff, exact, epsilon, witness, log_dir)
+                                        compOp, coeff, exact, epsilon)
             modelchecker.modelCheck()
 
         # Output statistics
