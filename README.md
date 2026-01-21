@@ -30,7 +30,6 @@ DOI: 10.5281/zenodo.15209574
 #### Optional Arguments for the Computation:
 - ```--checkModel```: if flag is set: check if model file can be parsed (property is not being checked)
 - ```--exact```: if flag is set: do exact computation with Rationals in storm
-- ```--witness```: if flag is set: output witness scheduler(s) if the property does not hold
 
 
 ### Assumptions on the Model File
