@@ -25,10 +25,9 @@ module process3 = process1 [ q1=q3, q2=q1, q3=q2 ] endmodule
 // formula, for use here and in properties: number of tokens
 formula num_tokens = q1+q2+q3;
 
-// initial states (at least one token)
-init
-	num_tokens >= 1
-endinit
+// initial states (all have tokens)
+init num_tokens = N endinit
+	//num_tokens >= 1 // (at least one token) // HyperProb runs into an error if we declare all as initial
 
 label "t1" = (q1=1);
 label "t2" = (q2=1);

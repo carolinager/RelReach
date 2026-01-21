@@ -25,10 +25,8 @@ module process2 = process1 [ q1=q2, q2=q3, q3=q1 ] endmodule
 // formula, for use here and in properties: number of tokens
 formula num_tokens = q1+q2+q3;
 
-// initial states (at least one token)
-init
-	num_tokens >= 1
-endinit
+// initial states (all have tokens)
+init num_tokens = N endinit
 
 label "t1" = (q1=1);
 label "t2" = (q2=1);
