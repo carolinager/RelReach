@@ -1,5 +1,3 @@
-from stormpy import EndComponentEliminatorReturnTypeDouble, BitVector
-
 from relreach.inputparser import parseArguments
 from relreach.utility import common
 from relreach.modelparser import Model
@@ -60,13 +58,6 @@ def buechi_processing(model, ind_dict, numInit, targets, targets_by_comb):
                     quot_not_subset = stormpy.eliminate_ECs(model.parsed_model.transition_matrix,
                                                             ones_MEC_wo_not_subset, ones_rows, ones_states)
 
-                    #rows_MEC_wo_not_subset = set.union(*[set(model.parsed_model.transition_matrix.get_rows_for_group(state)) for state in states_MEC_wo_not_subset])
-                    #ones_MEC_wo_not_subset_rows = stormpy.storage.BitVector(model.parsed_model.transition_matrix.nr_rows,
-                    #                                                        list(rows_MEC_wo_not_subset))
-                    #MEC_matrix = model.parsed_model.transition_matrix.submatrix(ones_MEC_wo_not_subset_rows, ones_MEC_wo_not_subset)
-
-                    # todo: I think this check does not work to check that there was an MEC
-                    # if quot_not_subset.sink_rows.number_of_set_bits() > 0:
                     # check: Does one of the collapsed states of quot_not_subset correspond to an MEC that contains states for all targets in subset?
                     list_mapped_target_states = []
                     for target in subset:
@@ -103,15 +94,13 @@ def buechi_processing(model, ind_dict, numInit, targets, targets_by_comb):
             flag = False
             for entry in row_iter:
                 assert entry.value() != 0, "Something went wrong: An entry of the SparseMatrix quotient is 0"
-                # transition in MEC quotient is a self-floop, do not copy
-                # todo this doesnt work yet
+                # if transition in MEC quotient is not a self-floop: copy
                 if entry.column != cur_group:
                     builder.add_next_value(cur_row, entry.column, entry.value())
                     flag = True
             if flag:
                 cur_row += 1
             if cur_group in sinks_by_MEC.keys():
-                # todo there is some indexing error here
                 for subset in sinks_by_MEC[cur_group]:
                     builder.add_next_value(cur_row, quotient.matrix.nr_columns + sinks.index(subset), 1)
                     cur_row += 1
@@ -161,6 +150,7 @@ def buechi_processing(model, ind_dict, numInit, targets, targets_by_comb):
     common.colourinfo("Constructing the MEC quotient took: " + str(round(quotient_construction_end_time - quotient_construction_start_time, 2)) + " seconds", False)
 
     return processed_model, processed_ind_dict, new_targets
+
 
 def main():
     try:
