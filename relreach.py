@@ -151,6 +151,133 @@ def buechi_processing(model, ind_dict, numInit, targets, targets_by_comb):
 
     return processed_model, processed_ind_dict, new_targets
 
+def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff):
+    curInitLists = {pred: range((numSum * pred) + 1, numSum * (pred + 1) + 1) for pred in equivClass}
+    curTargetSets = {pred: set(targets[(numSum * pred):(numSum * (pred + 1))]) for pred in equivClass}
+    curCoeffLists = {pred: coeff[((numSum + 1) * pred):((numSum + 1) * (pred + 1))] for pred in equivClass} # including bounds
+
+    # Step 1: Collect state-scheduler combinations, also split by conjunct
+    state_sched_comb = set()
+    ind_dict = {}
+    for i in chain.from_iterable(curInitLists.values()):
+        states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
+        assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
+        comb = (states_i[0], schedList[i - 1])
+        state_sched_comb.add(comb)
+        if comb in ind_dict.keys():
+            ind_dict[comb].append(i)
+        else:
+            ind_dict[comb] = [i]
+    common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
+
+    # Step 2: Construct goal unfolding wrt all relevant target states, combine and set up reward structures
+    ## Construct all goal unfoldings
+    unfoldings = {}
+    for (comb, rel_ind) in ind_dict.items():
+        rel_target_labels = set([targets[i - 1] for i in rel_ind])
+        rel_target_states_dict = {target:set(model.parsed_model.labeling.get_states(target)) for target in rel_target_labels}
+        rel_target_states = set.union(*rel_target_states_dict.values())
+
+        # storm build unfolding differently to what we need / want, we want to transition to a new copy *after* seeing a target state
+        # build memory structure for each set of target states
+        memorystructures = []
+        for i in rel_ind:
+            goalstates = model.parsed_model.labeling.get_states(targets[i - 1])
+            memoryBuilder = stormpy.storage.MemoryStructureBuilder(2, model.parsed_model, False)
+            memoryBuilder.set_transition(0, 0, ~goalstates)
+            memoryBuilder.set_transition(0, 1, goalstates)
+            memoryBuilder.set_transition(1, 1, stormpy.BitVector(model.parsed_model.nr_states, True))
+            memorystructures.append(memoryBuilder.build())
+
+        # take the product of all memory structures
+        product_memorystructure = memorystructures[0]
+        if len(rel_ind) > 1:
+            for i in range(2, len(rel_ind)):
+                product_memorystructure = product_memorystructure.product(memorystructures[i])
+
+        # take the product of the memory structure with the model -> goal unfolding!
+        product_type = product_memorystructure.product_model(model.parsed_model)
+        product_model = product_type.build()
+        unfoldings[comb] = product_model
+
+
+    ## Construct combined MDP
+    matrixBuilder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                          has_custom_row_grouping=True, row_groups=0)
+    nr_comb = len(ind_dict.keys())
+    cur_row = 0
+    cur_group = 0
+
+    # initial state: fresh, transitions to initial state of each unfolding with prob
+    accumulated_nr_states = 0
+    matrixBuilder.new_row_group(0)
+    for (comb, rel_ind) in ind_dict.items():
+        init_label = "init" + str(rel_ind[0])
+        init_states = list(unfoldings[comb].labeling.get_states(init_label))
+        assert len(
+            init_states) == 1, f"No or more than a single state is labeled with {init_label} in the goal unfolding for {comb}"
+        mapped_init_state = accumulated_nr_states + init_states[0] + 1
+        matrixBuilder.add_next_value(cur_row, mapped_init_state, 1 / nr_comb)  # todo vs exact?
+        cur_row += 1
+        accumulated_nr_states += unfoldings[comb].nr_states
+
+    cur_group += 1
+
+    # add a copy of the unfolding for each state-sched combination
+    accumulated_nr_states = 0
+    new_target_states = {target:[] for target in set.union(*curTargetSets.values())}
+    new_states_to_comb = {}
+    for (comb, rel_ind) in ind_dict.items():
+        rel_target_labels = set([targets[i - 1] for i in rel_ind])
+        for state in range(unfoldings[comb].nr_states): #todo vs model.states
+            matrixBuilder.new_row_group(cur_row)
+            rows = unfoldings[comb].transition_matrix.get_rows_for_group(state)
+            for row in rows:
+                row_iter = unfoldings[comb].transition_matrix.row_iter(row, row)
+                for entry in row_iter:
+                    assert entry.value() != 0, f"Something went wrong: An entry of the SparseMatrix quotient is 0 for the unfolding for comb {comb}"
+                    matrixBuilder.add_next_value(cur_row, entry.column + accumulated_nr_states + 1, entry.value())
+                    cur_row += 1
+            for target in rel_target_labels:
+                if state in unfoldings[comb].labeling.get_states(target):
+                    new_target_states[target].append(cur_group)
+            new_states_to_comb[cur_group] = comb
+            cur_group += 1
+        accumulated_nr_states += unfoldings[comb].nr_states
+
+    processed_nr_states = cur_group
+    processed_matrix = matrixBuilder.build()
+
+    ## Set up reward structures on each unfolded MDP, scaled by nr_comb
+    reward_models = {}
+    for (pred, targetSet) in curTargetSets.items():
+        # for each target collect all coefficients for this target in this predicate
+        accCoeffByTargetAndComb = {(target,comb):0 for target in targetSet for comb in ind_dict.keys()}
+        for (comb, rel_ind) in ind_dict.items():
+            for i in set(rel_ind).intersection(set(curInitLists[pred])): # both lists do not contain duplicates anyways
+                accCoeffByTargetAndComb[(targets[i-1],comb)] += curCoeffLists[pred][i - (numSum * pred) - 1] # todo this would be easier with separate bounds list
+
+        transRewMatrixbuilder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                                            has_custom_row_grouping=False)
+        for state in range(0, processed_matrix.nr_columns):
+            rows = processed_matrix.get_rows_for_group(state)
+            for row in rows:
+                row_iter = processed_matrix.row_iter(row, row)
+                for entry in row_iter:
+                    accVal = 0
+                    for target in targetSet:
+                        if entry.column in new_target_states[target]:
+                            cur_comb = new_states_to_comb[entry.column]
+                            accVal += accCoeffByTargetAndComb[(target, cur_comb)] * nr_comb
+                    if accVal != 0:
+                        transRewMatrixbuilder.add_next_value(row, entry.column, accVal)
+        transition_reward_matrix = transRewMatrixbuilder.build()
+        reward_models[f"R{pred}"] = stormpy.SparseRewardModel(optional_transition_reward_matrix=transition_reward_matrix)
+
+    state_labeling = stormpy.storage.StateLabeling(processed_nr_states)
+    components = stormpy.SparseModelComponents(transition_matrix=processed_matrix, state_labeling=state_labeling, reward_models=reward_models)
+    processed_model = stormpy.storage.SparseMdp(components)
+    return processed_model
 
 def main():
     try:
@@ -158,15 +285,20 @@ def main():
         input_args = parseArguments()
 
         model = Model(input_args.modelPath)
+        numPred = input_args.numPred  # l
         numScheds = input_args.numScheds # n
-        numInit = input_args.numInit # m
-        schedList = input_args.schedList # family of indices k_1 ... k_m
+        numInit = input_args.numInit # m*l
+        schedList = input_args.schedList # family of indices k_1 ... k_m / for m-o: k_1,1, ..., k_m,l
         targets = input_args.targets
-        coeff = input_args.coefficient # q_1, ..., q_{m+1}
+        coeff = input_args.coefficient # q_1, ..., q_m, q / for m-o: q_1,1, ..., q_m,1, q_1, q_1,2, ..., q_m,l, q_l (coeff q_1, ...,q_l are interpreted as bound)
         compOp = input_args.comparisonOperator
         buechi = input_args.buechi
 
         exact = input_args.exact
+
+        if exact:
+            common.colourerror("Not implemented!")
+            return 0
 
         # correctness checks
         if compOp in ['=', '!=']:
@@ -177,11 +309,15 @@ def main():
             epsilon = 0
 
         if numInit < numScheds:
-            common.colourerror("At least one scheduler is lonely: Number of initial state labels < number of schedulers. Will assume numScheds := numInit.")
+            common.colourerror("Unnecessary schedulers quantified: Number of initial state labels < number of schedulers. Will assume numScheds := numInit.")
             numScheds = numInit
 
+        if numPred>1:
+            assert (not buechi), "Multi-objective Buechi properties are currently not supported."
+            assert compOp != '=', "= currently not supported for disjunctive properties"
+
         assert len(targets) == numInit, "Number of target labels does not match number of initial state labels."
-        assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial state labels + 1."
+        assert len(coeff) == (numInit+numPred), "Number of coefficients does not match number of initial state labels + number of predicates."
         assert len(schedList) == numInit, "Size of scheduler list does not match number of initial state labels."
         assert set(schedList) == set(range(1,numScheds+1)), "List of schedulers does not cover the range {1,...,numScheds} or exceeds it."
 
@@ -198,39 +334,66 @@ def main():
         common.colourinfo("Building the model took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
         # assert each init label labels exactly one state, create state-sched-combinations and store which indices are associated with which initial state
-        state_sched_comb = set()
-        ind_dict = {}
-        if buechi:
-            targets_by_comb = {}
-        for i in range(1,numInit+1):
-            states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
-            assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
-            comb = (states_i[0], schedList[i-1])
-            state_sched_comb.add(comb)
-            if comb in ind_dict.keys():
-                ind_dict[comb].append(i)
-            else:
-                ind_dict[comb] = [i]
+        if numPred == 1:
+            state_sched_comb = set()
+            ind_dict = {}
             if buechi:
-                if comb in targets_by_comb.keys():
-                    targets_by_comb[comb].add(targets[i-1])
+                targets_by_comb = {}
+            for i in range(1,numInit+1):
+                states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
+                assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
+                comb = (states_i[0], schedList[i-1])
+                state_sched_comb.add(comb)
+                if comb in ind_dict.keys():
+                    ind_dict[comb].append(i)
                 else:
-                    targets_by_comb[comb] = {targets[i-1]}
-        common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
+                    ind_dict[comb] = [i]
+                if buechi:
+                    if comb in targets_by_comb.keys():
+                        targets_by_comb[comb].add(targets[i-1])
+                    else:
+                        targets_by_comb[comb] = {targets[i-1]}
+            common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
 
+            processed_model = model.parsed_model
+            processed_ind_dict = ind_dict
+            processed_targets = targets
+            if buechi:
+                processed_model, processed_ind_dict, processed_targets = buechi_processing(model, ind_dict, numInit, targets, targets_by_comb)
+                assert len(targets) == len(processed_targets), "Number of new targets does not match number of original targets."
 
-        processed_model = model.parsed_model
-        processed_ind_dict = ind_dict
-        processed_targets = targets
-        if buechi:
-            processed_model, processed_ind_dict, processed_targets = buechi_processing(model, ind_dict, numInit, targets, targets_by_comb)
-            assert len(targets) == len(processed_targets), "Number of new targets does not match number of original targets."
+            # Model-checking
+            if not input_args.checkModel:
+                modelchecker = ModelChecker(processed_model, processed_ind_dict, processed_targets,
+                                            compOp, coeff, exact, epsilon)
+                modelchecker.modelCheck()
+        else:
+            # Step 0: partition
+            numSum = int(numInit / numPred) # number of summands per predicate
+            scheds_by_pred = { pred:set(schedList[(numSum*pred):(numSum*(pred+1))]) for pred in range(numPred) }
+            partition = {}
+            seenScheds = set()
+            for pred in range(numPred):
+                foundClass = False
+                for predp in range(pred):
+                    if scheds_by_pred[pred].intersection(scheds_by_pred[predp]) != set():
+                        partition[predp].append(pred)
+                        foundClass = True
+                        break
+                if not foundClass:
+                    partition[pred] = [pred]
+                    seenScheds = seenScheds.union(scheds_by_pred[pred])
 
-        # Model-checking
-        if not input_args.checkModel:
-            modelchecker = ModelChecker(processed_model, processed_ind_dict, processed_targets,
-                                        compOp, coeff, exact, epsilon)
-            modelchecker.modelCheck()
+            resList = []
+            for repr in partition.keys():
+                equivClass = partition[repr]
+                common.colourinfo("Checking for predicates:", equivClass)
+
+                processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
+                pass
+                # Solve MOA query and append to resList
+            # combine results
+            pass
 
         # Output statistics
         end_time = time.perf_counter()
