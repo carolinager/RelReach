@@ -290,15 +290,16 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
                     accVal = 0
                     for target in targetSet:
                         if entry.column in target_succ[target] and (not state in target_succ[target]):
-                            # todo and check the state is not in the unfolding
                             cur_comb = new_states_to_comb[entry.column]
                             accVal += accCoeffByTargetAndComb[(target, cur_comb)] * nr_comb
-                    if accVal != 0:
-                        transRewMatrixbuilder.add_next_value(state, entry.column, accVal)
+                    # if accVal != 0:
+                    transRewMatrixbuilder.add_next_value(state, entry.column, accVal)
         transition_reward_matrix = transRewMatrixbuilder.build()
         reward_models[f"R{pred}"] = stormpy.SparseRewardModel(optional_transition_reward_matrix=transition_reward_matrix)
 
     state_labeling = stormpy.storage.StateLabeling(processed_nr_states)
+    state_labeling.add_label("init")
+    state_labeling.add_label_to_state("init", 0)
     components = stormpy.SparseModelComponents(transition_matrix=processed_matrix, state_labeling=state_labeling, reward_models=reward_models)
     processed_model = stormpy.storage.SparseMdp(components)
     return processed_model
@@ -411,28 +412,73 @@ def main():
             resList = []
             for repr in partition.keys():
                 equivClass = partition[repr]
-                common.colourinfo("Checking for predicates:", equivClass)
+                common.colourinfo("Checking for predicates: "+ str(equivClass))
 
-                formula = "multi(R{\"R1\"}max=? [ F \"term\"], R{\"R2\"}max=? [ F \"term\"])"
+                formula_interm = "multi("
+                for pred in equivClass:
+                    formula_interm += "R{\"R" + str(pred) +"\"}max=? [ C ], "
+                formula = formula_interm[:-2] + ")"
                 properties = stormpy.parse_properties(formula)
                 weightVector = [1 for _ in equivClass]
 
+                # Construct combined MDP
+                common.colourinfo("Constructing combined MDP...")
                 processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
 
-                if exact:
-                    pass
+                if not input_args.checkModel:
+                    common.colourinfo("Solving MOA query...")
+                    if exact:
+                        pass
+                    else:
+                        env = stormpy.Environment()
+                        weighted_model_checker, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
+                                                                                                                    processed_model,
+                                                                                                                    properties[0].raw_formula)
+                        weighted_model_checker.set_weighted_precision(0.0001) #todo decide precision
+                        weighted_model_checker.check(env, weightVector)
+                        point = weighted_model_checker.get_achievable_point()
+                        # todo postprocessing to retain soundness? then add handling below
+
+                        bound_vec = [coeff[(numSum + 1) * (pred + 1) - 1] for pred in equivClass]
+                        flag = 1
+                        for i in range(len(equivClass)):
+                            if compOp == '>':
+                                if point[i] <= bound_vec[i]:
+                                    flag = -1
+                                    break
+                            elif compOp == '>=':
+                                if point[i] < bound_vec[i]:
+                                    flag = -1
+                                    break
+                            elif compOp == '=':
+                                if point[i] - bound_vec[i] > epsilon or bound_vec[i] - point[i] > epsilon:
+                                    flag = -1
+                                    break
+                            elif compOp == '!=':
+                                if point[i] - bound_vec[i] <= epsilon and bound_vec[i] - point[i] <= epsilon:
+                                    flag = -1
+                                    break
+                            elif compOp == '<=':
+                                if point[i] > bound_vec[i]:
+                                    flag = -1
+                                    break
+                            elif compOp == '<':
+                                if point[i] >= bound_vec[i]:
+                                    flag = -1
+                                    break
+                        resList.append(flag)
+                        if flag != 1:
+                            break # if this subset of predicates does not hold (or it is unknown) then the full property does not hold (or it is unknown)
+
+            # combine results from resList
+            if not input_args.checkModel:
+                if -1 in resList:
+                    common.colourinfo("Property does not hold!")
+                elif 0 in resList:
+                    common.colourinfo("Result unknown")
                 else:
-                    env = stormpy.Environment()
-                    weighted_model_checker, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
-                                                                                                                processed_model,
-                                                                                                                properties[0].raw_formula)
-                    weighted_model_checker.set_weighted_precision(0.0001) #todo
-                    weighted_model_checker.check(env, weightVector)
-                    point = weighted_model_checker.get_achievable_point()
-                    pass
-                # Solve MOA query and append to resList
-            # combine results
-            pass
+                    common.colourinfo("Property holds!")
+            # todo add statistics for MORelReach
 
         # Output statistics
         end_time = time.perf_counter()
