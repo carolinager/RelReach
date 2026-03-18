@@ -1,31 +1,34 @@
 # RelReach
 
-RelReach implements the model-checking algorithm for relational reachability properties presented in the CAV25 paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
-More precisely, it allows to check universally quantified relational reachability properties
-like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?".
+RelReach implements the model-checking algorithm for relational reachability and Büchi properties presented in the paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
+More precisely, it allows to check universally quantified relational reachability or Büchi properties
+like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?"
+as well as disjunctive relational reachability properties.
 RelReach works on top of storm(py).
 
 ## Usage
 
 ### Docker (Recommended)
-A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574), as part of the artifact for the CAV paper. 
+A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574), as part of the artifact for the CAV paper.
 DOI: 10.5281/zenodo.15209574
 
 ### Arguments:
 #### Required Arguments:
 - ```--modelPath```: path to MDP model file
 - ```--numScheds```: number of schedulers to quantify over ($n$)
-- ```--numInit```: number of initial state labels ($m$)
-- ```--schedList```: list of scheduler indices (corresponding to the family of indices $k_1, ..., k_m$).
+- ```--numInit```: number of initial state labels ($m \cdot l$)
+- ```--schedList```: list of scheduler indices (corresponding to the family of indices $k_{1,1}, ..., k_{m,l}$).
   Expected to be a string of integers, separated by spaces, of length ```numInit```, covering all indices from 1 to ```numScheds```
-- ```--targets```: list of target labels $T_1, ..., T_m$ (one per initial state).
+- ```--targets```: list of target labels $T_{1,1}, ..., T_{m,l}$ (one per initial state).
   Expected to be a string of labels, separated by spaces, of length ```numInit```
-- ```--coefficient```: list of coefficients $q_1, ..., q_{m+1}$.
-  Expected to be a string of rational numbers, separated by spaces of length ```numInit+1```
+- ```--coefficient```: list of coefficients $q_{1,1}, ..., q_{m,1}, q_1, q_{1,2}, ... ,q_{m,l}, q_{l}$, where elements ($q_1, ..., q_l$) are interpreted as bounds.
+  Expected to be a string of rational numbers, separated by spaces, of length ```numInit+numPred```
 
 #### Optional Arguments for the Property:
-- ```--comparisonOperator```: '=', '<', '>', '<=', '>=', '!='. Default is '='
+- ```--numPred```: number of predicates ($l$)
+- ```--comparisonOperator```: '=', '<', '>', '<=', '>=', '!='. Default is '='. '=' is not supported if ```numPred```>1
 - ```--epsilon```: rational number for approximate comparison. Default is 0. Only allowed to be non-zero if ```comparisonOperator``` is '=' or '!='
+- ```--buechi```: Interpret targets as Büchi objectives. Only supported if ```numPred```=1
 
 #### Optional Arguments for the Computation:
 - ```--checkModel```: if flag is set: check if model file can be parsed (property is not being checked)
@@ -88,7 +91,7 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
 We want to check whether for all schedulers,
 the weighted sum of the probability of reaching "target1" from the first initial state
 plus the probability of reaching "target2" from the second initial state
-relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as specified by the comparison operator (if applicable, wrt epsilon).
+relates to the bound $q$ (i.e., the last element of ```coefficients```) as specified by the comparison operator (if applicable, wrt epsilon).
 
 #### Single state labeled both "init1" and "init2"
 - VN.1: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --epsilon 0.1```
@@ -108,6 +111,13 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 - IJ-boycott: ```--modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
+
+### Multi-Objective Reachability Sample Commands
+- FDR: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 2 --numInit 4 --numScheds 1 --schedList 1 1 1 1 --targets d0 d1 d1 d2 --coefficient 1 -1 0 1 -1 0 -cop !=```
+  - [todo adjust to 6 conjuncts]
+  - [todo epsilon]
+- toy: ```--modelPath ./benchmark/toy/Ex72.prism --numPred 2 --numInit 4 --numScheds 1 --schedList 1 1 1 1 --targets t t t tp --coefficient 1 -1 0 -1 1 0 -cop <```
+  - 2nd comparison operator switched compared to Ex7.2!
 
 ## Tested with:
 - storm=1.9.0 master branch
