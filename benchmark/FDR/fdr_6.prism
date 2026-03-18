@@ -1,0 +1,35 @@
+// https://zenodo.org/records/10438916
+// Fast Dice Roller Algorithm for uniform random sampling using coin flips [J. Lumbroso, arXiv:1304.1916, 2013]
+// The given encoding is based on a transformation to a probabilistic program by Daniel Zilken
+// Extended to biased coins by Lina Gerlach
+
+mdp
+
+const int N=6; // N > 0, the algorithm samples uniformly from {0, ..., N-1}
+
+const double bias_l = 59/100; // lower bound for bias towards 0
+const double bias_u = 61/100; // upper bound for bias towards 0
+
+formula decrHeads = 2*c >= N ? N : 0;
+formula decrTails = 2*c+1 >= N ? N : 0;
+module main
+    v : [0..N] init 1;
+    c : [0..N] init 0;
+    [l] v<N -> bias_l : (v' =min(N,2*v-decrHeads)) & (c'=2*c-decrHeads) + (1-bias_l) : (v' =min(N,2*v-decrTails)) & (c'=2*c+1-decrTails);
+    [u] v<N -> bias_u : (v' =min(N,2*v-decrHeads)) & (c'=2*c-decrHeads) + (1-bias_u) : (v' =min(N,2*v-decrTails)) & (c'=2*c+1-decrTails);
+    [] v=N -> 1 : true;
+endmodule
+
+label "init1" = (v=1)&(c=0);
+label "init2" = (v=1)&(c=0);
+label "init3" = (v=1)&(c=0);
+label "init4" = (v=1)&(c=0);
+label "init5" = (v=1)&(c=0);
+label "init6" = (v=1)&(c=0);
+
+label "d0" = (v=N)&(c=0);
+label "d1" = (v=N)&(c=1);
+label "d2" = (v=N)&(c=2);
+label "d3" = (v=N)&(c=3);
+label "d4" = (v=N)&(c=4);
+label "d5" = (v=N)&(c=5);
