@@ -207,10 +207,12 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
     nr_comb = len(ind_dict.keys())
     cur_row = 0
     cur_group = 0
+    successors = {}
 
     # initial state: fresh, transitions to initial state of each unfolding with prob
     accumulated_nr_states = 0
     matrixBuilder.new_row_group(0)
+    successors[0] = set()
     for (comb, rel_ind) in ind_dict.items():
         init_label = "init" + str(rel_ind[0])
         init_states = list(unfoldings[comb].labeling.get_states(init_label))
@@ -218,9 +220,9 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
             init_states) == 1, f"No or more than a single state is labeled with {init_label} in the goal unfolding for {comb}"
         mapped_init_state = accumulated_nr_states + init_states[0] + 1
         matrixBuilder.add_next_value(cur_row, mapped_init_state, 1 / nr_comb)  # todo vs exact?
-        cur_row += 1
         accumulated_nr_states += unfoldings[comb].nr_states
-
+        successors[0].add(mapped_init_state)
+    cur_row += 1
     cur_group += 1
 
     # add a copy of the unfolding for each state-sched combination
@@ -230,23 +232,44 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
     for (comb, rel_ind) in ind_dict.items():
         rel_target_labels = set([targets[i - 1] for i in rel_ind])
         for state in range(unfoldings[comb].nr_states): #todo vs model.states
+            successors[cur_group] = set()
+            # cur_state_is_target = {target: (state in unfoldings[comb].labeling.get_states(target)) for target in rel_target_labels}
             matrixBuilder.new_row_group(cur_row)
             rows = unfoldings[comb].transition_matrix.get_rows_for_group(state)
             for row in rows:
                 row_iter = unfoldings[comb].transition_matrix.row_iter(row, row)
                 for entry in row_iter:
                     assert entry.value() != 0, f"Something went wrong: An entry of the SparseMatrix quotient is 0 for the unfolding for comb {comb}"
-                    matrixBuilder.add_next_value(cur_row, entry.column + accumulated_nr_states + 1, entry.value())
-                    cur_row += 1
+                    mapped_succ_state = entry.column + accumulated_nr_states + 1
+                    matrixBuilder.add_next_value(cur_row, mapped_succ_state, entry.value())
+                    successors[cur_group].add(mapped_succ_state)
+                cur_row += 1
             for target in rel_target_labels:
+                # remember which states correspond to target states
                 if state in unfoldings[comb].labeling.get_states(target):
                     new_target_states[target].append(cur_group)
+                # remember which states correspond to having already seen the target
+                # if state in unfoldings[comb].labeling.get_states(target) or state in seen[target]:
+                #    seen[target].extend(curr_succ)
             new_states_to_comb[cur_group] = comb
             cur_group += 1
         accumulated_nr_states += unfoldings[comb].nr_states
 
     processed_nr_states = cur_group
     processed_matrix = matrixBuilder.build()
+
+    # Compute all successors of target states
+    target_succ = {}
+    for (target, target_states) in new_target_states.items():
+        target_succ[target] = set()
+        for state in target_states:
+            visited = set()
+            tmp = {state}
+            while tmp != set():
+                succ = tmp.pop()
+                visited.add(succ)
+                tmp.update(successors[succ].difference(visited)) # ensure we visit each state at most once
+            target_succ[target].update(visited)
 
     ## Set up reward structures on each unfolded MDP, scaled by nr_comb
     reward_models = {}
@@ -266,11 +289,12 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
                 for entry in row_iter:
                     accVal = 0
                     for target in targetSet:
-                        if entry.column in new_target_states[target]:
+                        if entry.column in target_succ[target] and (not state in target_succ[target]):
+                            # todo and check the state is not in the unfolding
                             cur_comb = new_states_to_comb[entry.column]
                             accVal += accCoeffByTargetAndComb[(target, cur_comb)] * nr_comb
                     if accVal != 0:
-                        transRewMatrixbuilder.add_next_value(row, entry.column, accVal)
+                        transRewMatrixbuilder.add_next_value(state, entry.column, accVal)
         transition_reward_matrix = transRewMatrixbuilder.build()
         reward_models[f"R{pred}"] = stormpy.SparseRewardModel(optional_transition_reward_matrix=transition_reward_matrix)
 
@@ -389,8 +413,23 @@ def main():
                 equivClass = partition[repr]
                 common.colourinfo("Checking for predicates:", equivClass)
 
+                formula = "multi(R{\"R1\"}max=? [ F \"term\"], R{\"R2\"}max=? [ F \"term\"])"
+                properties = stormpy.parse_properties(formula)
+                weightVector = [1 for _ in equivClass]
+
                 processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
-                pass
+
+                if exact:
+                    pass
+                else:
+                    env = stormpy.Environment()
+                    weighted_model_checker, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
+                                                                                                                processed_model,
+                                                                                                                properties[0].raw_formula)
+                    weighted_model_checker.set_weighted_precision(0.0001) #todo
+                    weighted_model_checker.check(env, weightVector)
+                    point = weighted_model_checker.get_achievable_point()
+                    pass
                 # Solve MOA query and append to resList
             # combine results
             pass
