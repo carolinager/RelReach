@@ -56,7 +56,7 @@ class ModelChecker:
         env = stormpy.Environment()
 
         if self.exact:
-            common.colourerror("Exact computation currently not supported by stormpy!")
+            common.colourerror("Exact computation currently not supported!")
             # env.solver_environment.set_force_exact()
             # env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
             # env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration

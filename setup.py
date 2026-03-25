@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='relreach',
+    name='relprop',
     version='1.0',
     description='Model checker for Relational Properties',
     author='Lina Gerlach',
@@ -10,6 +10,5 @@ setup(
     install_requires=[
         'termcolor',
         'stormpy @ git+https://github.com/carolinager/stormpy.git@relprop#egg=stormpy',
-        'pycarl==2.3.0',
     ],
 )
