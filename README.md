@@ -3,8 +3,8 @@
 RelProp implements the model-checking algorithm for relational reachability and Büchi properties presented in the paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
 More precisely, it allows to check universally quantified relational reachability or Büchi properties
 like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?"
-as well as disjunctive relational reachability properties (Note: underlying stormpy functionality for disjunctive properties currently contains bugs).
 RelProp works on top of storm(py).
+Disjunctive relational reachability properties (i.e. the negation of multi-objective relational reachability properties) are not included in the current prototype since the underlying storm(py) functionality for multi-objective model-checking currently contains bugs.
 
 ## Usage
 
@@ -49,7 +49,7 @@ git clone https://github.com/carolinager/RelProp
 ```
 
 - Install the dependencies listed in `RelProp/requirements.txt`.
-  Most importantly, RelProp depends on [pycarl](https://moves-rwth.github.io/pycarl) and a [fork](https://github.com/carolinager/stormpy/tree/relreach-full) of [stormpy](https://github.com/moves-rwth/stormpy) which have their own dependencies.
+  Most importantly, RelProp depends on a [fork](https://github.com/carolinager/stormpy/tree/relprop) of [stormpy](https://github.com/moves-rwth/stormpy) which includes [pycarl](https://moves-rwth.github.io/pycarl) and has its own dependencies.
   Further, stormpy requires [storm](https://www.stormchecker.org) and pycarl requires [carl-storm](https://github.com/moves-rwth/carl-storm/).
   The concrete versions with which our implementation was tested are listed in `RelProp/requirements.txt`.
   For instructions how to install these dependencies, we refer to the installation instructions provided on the respective websites.
@@ -81,7 +81,7 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
 - TA, m=8: ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
   - Analogously for the other variants (m=4,6,8) and all initial-state-combinations
-- TS ```--modelPath ./benchmark/TS/th0_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets terml1 terml1 --coefficient 1 -1 0``` and same for ```terml2```
+- TS ```--modelPath ./benchmark/TS/th10_20.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets terml1 terml1 --coefficient 1 -1 0``` and same for ```terml2```
   - Returns "No" instantly
   - Analogously for the other variants
 - PW ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
@@ -108,17 +108,15 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 
 ### Büchi Sample Commands
 - IJ: ```--modelPath ./benchmark/IJ/ij_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
+  - Returns "Yes" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 - IJ-boycott: ```--modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
+  - Expected to return "No" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 
-### Multi-Objective Reachability Sample Commands
-- FDR.1: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
-  - Expected to return No
-- FDR.2: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop != --epsilon 0.1```
 
 ## Tested with:
-- stormpy fork: https://github.com/sjunges/stormpy/tree/relreach
+- stormpy fork, relprop branch: https://github.com/carolinager/stormpy/tree/relprop
   - Builds correct storm version (1.12.0 master branch)
   - Includes pycarl for carl-storm 14.34
 

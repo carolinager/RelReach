@@ -1,13 +1,8 @@
-from unittest import skip
-
 import stormpy
+from stormpy import Rational
 from relprop.utility import common
-# from pycarl.gmp.gmp import Rational # pycarl is now part of stormpy
 
-from contextlib import redirect_stdout
 import datetime
-import os
-
 
 class ModelChecker:
     def __init__(self, model, ind_dict, targets, compOp, coeff, exact, epsilon):
@@ -61,48 +56,31 @@ class ModelChecker:
         env = stormpy.Environment()
 
         if self.exact:
-            #todo check
-            env.solver_environment.set_force_exact()
-            env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-            env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-
-            weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_exact(env,
-                                                                                                               self.model,
-                                                                                                               properties[0].raw_formula,
-                                                                                                               compute_scheduler=False)
-            weighted_model_checker.check(env, [Rational(r) for r in rel_coeffs])
-            # todo ensure initial state is the one we are indeed interested in
-
-            res_weighted = weighted_model_checker.get_optimal_weighted_sum()
-
-            """res_weighted, _, sched = stormpy.compute_rel_reach_helper_exact(env,
-                                                                                  self.model,
-                                                                                  state,
-                                                                                  properties[0].raw_formula,
-                                                                                  [Rational(r) for r in rel_coeffs],
-                                                                                  # weightVector
-                                                                                  )"""
-            res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
+            common.colourerror("Exact computation currently not supported by stormpy!")
+            # env.solver_environment.set_force_exact()
+            # env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
+            # env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
+            #
+            # weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_exact(env,
+            #                                                                                                    self.model,
+            #                                                                                                    properties[0].raw_formula,
+            #                                                                                                    compute_scheduler=False)
+            # weighted_model_checker.check(env, [Rational(r) for r in rel_coeffs])
+            #
+            # res_weighted = weighted_model_checker.get_optimal_weighted_sum()
+            # res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
         else:
             weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
                                                                                                               self.model,
                                                                                                               properties[0].raw_formula,
                                                                                                               compute_scheduler=False)
-            weighted_model_checker.set_weighted_precision(0.0001)
+            weighted_model_checker.set_weighted_precision(0.000001)
             weighted_model_checker.check(env, rel_coeffs)
             # todo ensure initial state is the one we are indeed interested in
 
-            res_weighted = weighted_model_checker.get_optimal_weighted_sum()
-            """
-            begin old call:
-            res_weighted, _, sched = stormpy.compute_rel_reach_helper(env,
-                                                                      self.model,
-                                                                      state,
-                                                                      properties[0].raw_formula,
-                                                                      rel_coeffs,  # weightVector
-                                                                      )
-            end old call
-            """
+            res_point = weighted_model_checker.get_achievable_point() # i would expect res_point * rel_coeffs = res_weighted but that is not the case
+            # res_weighted = weighted_model_checker.get_optimal_weighted_sum()
+            res_weighted = sum([res_point[i] * rel_coeffs[i] for i in range(len(rel_coeffs))])
 
             # StandardPcaaWeightVectorChecker currently returns res := (lower + upper)/2 for both under- and over-Approx
             # where lower <= exact_res <= upper
