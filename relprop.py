@@ -1,7 +1,7 @@
-from relreach.inputparser import parseArguments
-from relreach.utility import common
-from relreach.modelparser import Model
-from relreach.modelchecker import ModelChecker
+from relprop.inputparser import parseArguments
+from relprop.utility import common
+from relprop.modelparser import Model
+from relprop.modelchecker import ModelChecker
 import stormpy
 
 import os
@@ -151,6 +151,76 @@ def buechi_processing(model, ind_dict, numInit, targets, targets_by_comb):
 
     return processed_model, processed_ind_dict, new_targets
 
+def cast_to_reach(processed_model, equivClass):
+    ones_states = stormpy.storage.BitVector(processed_model.nr_states, True)
+    ones_rows = stormpy.storage.BitVector(processed_model.transition_matrix.nr_rows, True)
+    quotient = stormpy.eliminate_ECs(processed_model.transition_matrix, ones_states, ones_rows,
+                                     ones_states, True)
+    # copy reward models
+    quotient_reward_models = {}
+    new_to_old_state_mapping = {new_s: [i for i, x in enumerate(quotient.old_to_new_state_mapping) if x == new_s] for
+                                new_s in range(quotient.matrix.nr_columns)}
+    for pred in equivClass:
+        reward_label = f"R{pred}"
+        old_rew_matrix = processed_model.reward_models[reward_label].transition_rewards
+        # for each target collect all coefficients for this target in this predicate
+        transRewMatrixbuilder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0,
+                                                            force_dimensions=False,
+                                                            has_custom_row_grouping=False)
+        for new_s in range(quotient.matrix.nr_columns):
+            old_states = new_to_old_state_mapping[new_s]
+            for old_s in old_states:
+                rows = old_rew_matrix.get_rows_for_group(old_s)
+                for row in rows:
+                    row_iter = old_rew_matrix.row_iter(row, row)
+                    for entry in row_iter:
+                        new_column = quotient.old_to_new_state_mapping[entry.column]
+                        transRewMatrixbuilder.add_next_value(new_s, new_column, entry.value())
+
+        new_reward_matrix = transRewMatrixbuilder.build()
+        quotient_reward_models[reward_label] = stormpy.SparseRewardModel(
+            optional_transition_reward_matrix=new_reward_matrix)
+
+    # rebuild matrix, add sink state and transitions to sink from all collapsed MEC states
+    matrixBuilder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
+                                                has_custom_row_grouping=True, row_groups=0)
+    cur_row = 0
+    sink = quotient.matrix.nr_columns
+    for state in range(quotient.matrix.nr_columns):
+        matrixBuilder.new_row_group(cur_row)
+        rows = quotient.matrix.get_rows_for_group(state)
+        for row in rows:
+            row_iter = quotient.matrix.row_iter(row, row)
+            for entry in row_iter:
+                assert entry.value() != 0, f"Something went wrong: An entry of the SparseMatrix quotient is 0 for the unfolding for comb {comb}"
+                if (entry.column == state and entry.value() == 1):  # self-loop
+                    matrixBuilder.add_next_value(cur_row, entry.column, entry.value())
+                else:
+                    matrixBuilder.add_next_value(cur_row, sink, 1)
+            cur_row += 1
+
+    # add self-loop on sink
+    matrixBuilder.new_row_group(cur_row)
+    matrixBuilder.add_next_value(cur_row, sink, 1)
+
+    quotient_matrix_with_sink = matrixBuilder.build()
+
+    # label initial state and label sink
+    quotient_state_labeling = stormpy.storage.StateLabeling(quotient.matrix.nr_columns + 1)
+    quotient_state_labeling.add_label("init")
+    quotient_state_labeling.add_label_to_state("init", 0)
+    quotient_state_labeling.add_label("term")
+    quotient_state_labeling.add_label_to_state("term", sink)
+
+    quotient_components_with_rewards = stormpy.SparseModelComponents(
+        transition_matrix=quotient_matrix_with_sink,
+        state_labeling=quotient_state_labeling,
+        reward_models=quotient_reward_models)
+    quotient_with_reward = stormpy.storage.SparseMdp(quotient_components_with_rewards)
+
+    return quotient_with_reward
+
+
 def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff):
     curInitLists = {pred: range((numSum * pred) + 1, numSum * (pred + 1) + 1) for pred in equivClass}
     curTargetSets = {pred: set(targets[(numSum * pred):(numSum * (pred + 1))]) for pred in equivClass}
@@ -232,6 +302,8 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
     for (comb, rel_ind) in ind_dict.items():
         rel_target_labels = set([targets[i - 1] for i in rel_ind])
         for state in range(unfoldings[comb].nr_states): #todo vs model.states
+            # state: state in unfolding[comb]
+            # cur_group: corresponding state in combined MDP
             successors[cur_group] = set()
             # cur_state_is_target = {target: (state in unfoldings[comb].labeling.get_states(target)) for target in rel_target_labels}
             matrixBuilder.new_row_group(cur_row)
@@ -272,18 +344,21 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
             target_succ[target].update(visited)
 
     ## Set up reward structures on each unfolded MDP, scaled by nr_comb
+    common.colourinfo("Setting up reward structures...")
     reward_models = {}
     for (pred, targetSet) in curTargetSets.items():
         # for each target collect all coefficients for this target in this predicate
         accCoeffByTargetAndComb = {(target,comb):0 for target in targetSet for comb in ind_dict.keys()}
         for (comb, rel_ind) in ind_dict.items():
             for i in set(rel_ind).intersection(set(curInitLists[pred])): # both lists do not contain duplicates anyways
-                accCoeffByTargetAndComb[(targets[i-1],comb)] += curCoeffLists[pred][i - (numSum * pred) - 1] # todo this would be easier with separate bounds list
+                accCoeffByTargetAndComb[(targets[i-1],comb)] += curCoeffLists[pred][i - (numSum * pred) - 1]
 
         transRewMatrixbuilder = stormpy.SparseMatrixBuilder(rows=0, columns=0, entries=0, force_dimensions=False,
-                                                            has_custom_row_grouping=False)
+                                                            has_custom_row_grouping=True, row_groups=0)
+        cur_row = 0
         for state in range(0, processed_matrix.nr_columns):
             rows = processed_matrix.get_rows_for_group(state)
+            transRewMatrixbuilder.new_row_group(cur_row)
             for row in rows:
                 row_iter = processed_matrix.row_iter(row, row)
                 for entry in row_iter:
@@ -292,8 +367,10 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
                         if entry.column in target_succ[target] and (not state in target_succ[target]):
                             cur_comb = new_states_to_comb[entry.column]
                             accVal += accCoeffByTargetAndComb[(target, cur_comb)] * nr_comb
-                    # if accVal != 0:
-                    transRewMatrixbuilder.add_next_value(state, entry.column, accVal)
+                    if accVal != 0:
+                        print(str(state) + " to " + str(entry.column) + " has rew " + str(accVal))
+                    transRewMatrixbuilder.add_next_value(row, entry.column, accVal)
+                cur_row += 1
         transition_reward_matrix = transRewMatrixbuilder.build()
         reward_models[f"R{pred}"] = stormpy.SparseRewardModel(optional_transition_reward_matrix=transition_reward_matrix)
 
@@ -302,6 +379,7 @@ def transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numS
     state_labeling.add_label_to_state("init", 0)
     components = stormpy.SparseModelComponents(transition_matrix=processed_matrix, state_labeling=state_labeling, reward_models=reward_models)
     processed_model = stormpy.storage.SparseMdp(components)
+
     return processed_model
 
 def main():
@@ -320,6 +398,7 @@ def main():
         buechi = input_args.buechi
 
         exact = input_args.exact
+
 
         if exact:
             common.colourerror("Not implemented!")
@@ -409,27 +488,56 @@ def main():
                     partition[pred] = [pred]
                     seenScheds = seenScheds.union(scheds_by_pred[pred])
 
+            common.colourinfo("Partitioned property into classes of predicates: " +str(partition.values()))
+
             resList = []
             for repr in partition.keys():
                 equivClass = partition[repr]
-                common.colourinfo("Checking for predicates: "+ str(equivClass))
-
-                formula_interm = "multi("
-                for pred in equivClass:
-                    formula_interm += "R{\"R" + str(pred) +"\"}max=? [ C ], "
-                formula = formula_interm[:-2] + ")"
-                properties = stormpy.parse_properties(formula)
-                weightVector = [1 for _ in equivClass]
+                common.colourinfo("Checking the following predicates: "+ str(equivClass))
 
                 # Construct combined MDP
                 common.colourinfo("Constructing combined MDP...")
+                start_moa_preproc_time = time.perf_counter()
                 processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
+                end_moa_preproc_time = time.perf_counter()
+                common.colourinfo("Constructing the combined MDP took: " + str(round(end_moa_preproc_time - start_moa_preproc_time, 2)) + " seconds",
+                                  False)
+                ##### cast to reach
+                # quotient_with_reward = cast_to_reach(processed_model, equivClass)
+                ###
 
                 if not input_args.checkModel:
                     common.colourinfo("Solving MOA query...")
+                    formula_interm = "multi("
+                    for pred in equivClass:
+                        formula_interm += "R{\"R" + str(pred) + "\"}max=? [ C ], "
+                    formula = formula_interm[:-2] + ")"
+                    properties = stormpy.parse_properties(formula)
+                    weightVector = [1 for _ in equivClass]
+
+                    #### cast to reach
+                    """formula_reach_interm = "multi("
+                    for pred in equivClass:
+                        formula_reach_interm += "R{\"R" + str(pred) + "\"}max=? [F \"term\"], "
+                    formula_reach = formula_reach_interm[:-2] + ")"
+                    properties_reach = stormpy.parse_properties(formula_reach)"""
+                    ###
+
                     if exact:
                         pass
                     else:
+                        ### reach reward
+                        """env = stormpy.Environment()
+                        weighted_reach_model_checker, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
+                                                                                                                    quotient_with_reward,
+                                                                                                                    properties_reach[
+                                                                                                                        0].raw_formula)
+                        weighted_reach_model_checker.set_weighted_precision(0.0001)  # todo decide precision
+                        weighted_reach_model_checker.check(env, weightVector)
+                        point_reach = weighted_reach_model_checker.get_achievable_point()"""
+
+
+                        #### total reward
                         env = stormpy.Environment()
                         weighted_model_checker, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
                                                                                                                     processed_model,
@@ -439,6 +547,7 @@ def main():
                         point = weighted_model_checker.get_achievable_point()
                         # todo postprocessing to retain soundness? then add handling below
 
+                        # todo vs compute min / max depending on comp. op??
                         bound_vec = [coeff[(numSum + 1) * (pred + 1) - 1] for pred in equivClass]
                         flag = 1
                         for i in range(len(equivClass)):
@@ -483,8 +592,8 @@ def main():
         # Output statistics
         end_time = time.perf_counter()
         common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Finished. Statistics:")
-        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False)
-        common.colourinfo("Total time: " + str(round(end_time - start_time, 2)) + " seconds", False)
+        common.colourinfo("Solving took: " + str(round(end_time - parsing_time, 2)) + " seconds", False) # everything except building the original MDP
+        common.colourinfo("Total time (solving + building original MDP): " + str(round(end_time - start_time, 2)) + " seconds", False)
 
     except Exception as err:
         common.colourerror("Unexpected error encountered: " + str(err))

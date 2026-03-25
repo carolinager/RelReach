@@ -1,7 +1,7 @@
 from unittest import skip
 
 import stormpy
-from relreach.utility import common
+from relprop.utility import common
 # from pycarl.gmp.gmp import Rational # pycarl is now part of stormpy
 
 from contextlib import redirect_stdout
@@ -122,7 +122,7 @@ class ModelChecker:
     def modelCheck(self):
         # Step 3: compute min and/or max for each state-scheduler combination
         # for each combination, we store: if exact: single exact result, else tuples consisting of lower and upper bound
-        res_min_dict = {k: [] for k in self.ind_dict.keys()}  # todo change to list?
+        res_min_dict = {k: [] for k in self.ind_dict.keys()}
         res_max_dict = {k: [] for k in self.ind_dict.keys()}
 
         if self.exact:

@@ -1,15 +1,15 @@
-# RelReach
+# RelProp
 
-RelReach implements the model-checking algorithm for relational reachability and Büchi properties presented in the paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
+RelProp implements the model-checking algorithm for relational reachability and Büchi properties presented in the paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
 More precisely, it allows to check universally quantified relational reachability or Büchi properties
 like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?"
-as well as disjunctive relational reachability properties.
-RelReach works on top of storm(py).
+as well as disjunctive relational reachability properties (Note: underlying stormpy functionality for disjunctive properties currently contains bugs).
+RelProp works on top of storm(py).
 
 ## Usage
 
 ### Docker (Recommended)
-A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574), as part of the artifact for the CAV paper.
+A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574).
 DOI: 10.5281/zenodo.15209574
 
 ### Arguments:
@@ -45,18 +45,18 @@ Note that this includes models where there is a single state labeled both "init1
 
 - Begin by cloning this folder locally:
 ```
-git clone https://github.com/carolinager/RelReach
+git clone https://github.com/carolinager/RelProp
 ```
 
-- Install the dependencies listed in `RelReach/requirements.txt`.
-  Most importantly, RelReach depends on [pycarl](https://moves-rwth.github.io/pycarl) and a [fork](https://github.com/carolinager/stormpy/tree/relreach-full) of [stormpy](https://github.com/moves-rwth/stormpy) which have their own dependencies.
+- Install the dependencies listed in `RelProp/requirements.txt`.
+  Most importantly, RelProp depends on [pycarl](https://moves-rwth.github.io/pycarl) and a [fork](https://github.com/carolinager/stormpy/tree/relreach-full) of [stormpy](https://github.com/moves-rwth/stormpy) which have their own dependencies.
   Further, stormpy requires [storm](https://www.stormchecker.org) and pycarl requires [carl-storm](https://github.com/moves-rwth/carl-storm/).
-  The concrete versions with which our implementation was tested are listed in `RelReach/requirements.txt`.
+  The concrete versions with which our implementation was tested are listed in `RelProp/requirements.txt`.
   For instructions how to install these dependencies, we refer to the installation instructions provided on the respective websites.
 
 - You can now execute commands by running
 ```
-python3 relreach.py <command>
+python3 relprop.py <command>
 ```
 See above for an explanation of the arguments as well as sample commands.
 
@@ -113,17 +113,13 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 
 ### Multi-Objective Reachability Sample Commands
-- FDR: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 2 --numInit 4 --numScheds 1 --schedList 1 1 1 1 --targets d0 d1 d1 d2 --coefficient 1 -1 0 1 -1 0 -cop !=```
-  - [todo adjust to 6 conjuncts]
-  - [todo epsilon]
-- toy: ```--modelPath ./benchmark/toy/Ex72.prism --numPred 2 --numInit 4 --numScheds 1 --schedList 1 1 1 1 --targets t t t tp --coefficient 1 -1 0 -1 1 0 -cop <```
-  - 2nd comparison operator switched compared to Ex7.2!
+- FDR.1: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
+  - Expected to return No
+- FDR.2: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop != --epsilon 0.1```
 
 ## Tested with:
-- storm=1.9.0 master branch
-- carl-storm 14.28
-- stormpy fork, relreach-full branch: https://github.com/carolinager/stormpy/tree/relreach-full
-  - Note: ensure correct storm version is used when building stormpy!
-- pycarl 2.3.0
+- stormpy fork: https://github.com/sjunges/stormpy/tree/relreach
+  - Builds correct storm version (1.12.0 master branch)
+  - Includes pycarl for carl-storm 14.34
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk

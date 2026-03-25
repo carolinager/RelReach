@@ -1,6 +1,6 @@
 import os
 import stormpy
-from relreach.utility import common
+from relprop.utility import common
 
 class Model:
     def __init__(self, model_path):

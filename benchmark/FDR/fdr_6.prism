@@ -26,6 +26,12 @@ label "init3" = (v=1)&(c=0);
 label "init4" = (v=1)&(c=0);
 label "init5" = (v=1)&(c=0);
 label "init6" = (v=1)&(c=0);
+label "init7" = (v=1)&(c=0);
+label "init8" = (v=1)&(c=0);
+label "init9" = (v=1)&(c=0);
+label "init10" = (v=1)&(c=0);
+label "init11" = (v=1)&(c=0);
+label "init12" = (v=1)&(c=0);
 
 label "d0" = (v=N)&(c=0);
 label "d1" = (v=N)&(c=1);
