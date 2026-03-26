@@ -78,8 +78,8 @@ class ModelChecker:
             weighted_model_checker.check(env, rel_coeffs)
             # todo ensure initial state is the one we are indeed interested in
 
-            res_point = weighted_model_checker.get_achievable_point() # i would expect res_point * rel_coeffs = res_weighted but that is not the case
-            # res_weighted = weighted_model_checker.get_optimal_weighted_sum()
+            res_point = weighted_model_checker.get_achievable_point()
+            # weighted_model_checker.get_optimal_weighted_sum() adds weighting according to min / max objectives, does not perform the desired computation (below) but with opposing sign for minimzing objectives
             res_weighted = sum([res_point[i] * rel_coeffs[i] for i in range(len(rel_coeffs))])
 
             # StandardPcaaWeightVectorChecker currently returns res := (lower + upper)/2 for both under- and over-Approx
