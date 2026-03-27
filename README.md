@@ -116,7 +116,7 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 - FDR.1: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
   - Expected to return No
 - FDR.2: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop != --epsilon 0.1```
-
+- KY.1: ```--modelPath ./benchmark/KY/ky_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
 ## Tested with:
 - stormpy fork: https://github.com/sjunges/stormpy/tree/relreach
   - Builds correct storm version (1.12.0 master branch)

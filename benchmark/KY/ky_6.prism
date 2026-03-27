@@ -1,0 +1,49 @@
+// Knuth-Yao
+// biased coins
+
+mdp
+
+const int N=6; // N > 0, the algorithm samples uniformly from {0, ..., N-1}
+
+const double bias_l = 0.5; // 59/100; // lower bound for bias towards 0
+const double bias_u = 0.5; // 61/100; // upper bound for bias towards 0
+
+
+module main
+    s : [0..12] init 0;
+    [l] (s=0) -> bias_l : (s'=1) + (1-bias_l) : (s'=2);
+    [u] (s=0) -> bias_u : (s'=1) + (1-bias_u) : (s'=2);
+    [l] (s=1) -> bias_l : (s'=3) + (1-bias_l) : (s'=4);
+    [u] (s=1) -> bias_u : (s'=3) + (1-bias_u) : (s'=4);
+    [l] (s=2) -> bias_l : (s'=5) + (1-bias_l) : (s'=6);
+    [u] (s=2) -> bias_u : (s'=5) + (1-bias_u) : (s'=6);
+    [l] (s=3) -> bias_l : (s'=7) + (1-bias_l) : (s'=1);
+    [u] (s=3) -> bias_u : (s'=7) + (1-bias_u) : (s'=1);
+    [l] (s=4) -> bias_l : (s'=8) + (1-bias_l) : (s'=9);
+    [u] (s=4) -> bias_u : (s'=8) + (1-bias_u) : (s'=9);
+    [l] (s=5) -> bias_l : (s'=10) + (1-bias_l) : (s'=11);
+    [u] (s=5) -> bias_u : (s'=10) + (1-bias_u) : (s'=11);
+    [l] (s=6) -> bias_l : (s'=12) + (1-bias_l) : (s'=2);
+    [u] (s=6) -> bias_u : (s'=12) + (1-bias_u) : (s'=2);
+    [] (s>6) -> 1 : true;
+endmodule
+
+label "init1" = (s=0);
+label "init2" = (s=0);
+label "init3" = (s=0);
+label "init4" = (s=0);
+label "init5" = (s=0);
+label "init6" = (s=0);
+label "init7" = (s=0);
+label "init8" = (s=0);
+label "init9" = (s=0);
+label "init10" = (s=0);
+label "init11" = (s=0);
+label "init12" = (s=0);
+
+label "d0" = (s=7);
+label "d1" = (s=8);
+label "d2" = (s=9);
+label "d3" = (s=10);
+label "d4" = (s=11);
+label "d5" = (s=12);

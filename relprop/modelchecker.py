@@ -88,11 +88,13 @@ class ModelChecker:
                                                                                                               self.model,
                                                                                                               properties[0].raw_formula,
                                                                                                               compute_scheduler=False)
-            weighted_model_checker.set_weighted_precision(0.0001)
+            weighted_model_checker.set_weighted_precision(0.000001)
             weighted_model_checker.check(env, rel_coeffs)
             # todo ensure initial state is the one we are indeed interested in
 
-            res_weighted = weighted_model_checker.get_optimal_weighted_sum()
+            res_point = weighted_model_checker.get_achievable_point()
+            # weighted_model_checker.get_optimal_weighted_sum() adds weighting according to min / max objectives, does not perform the desired computation (below) but with opposing sign for minimzing objectives
+            res_weighted = sum([res_point[i] * rel_coeffs[i] for i in range(len(rel_coeffs))])
             """
             begin old call:
             res_weighted, _, sched = stormpy.compute_rel_reach_helper(env,
@@ -164,6 +166,10 @@ class ModelChecker:
                     rel_targets = [self.targets[i - 1] for i in rel_ind]
                     rel_coeffs = [self.coeff[i - 1] for i in rel_ind]
 
+                    # PcaaWeightVectorChecker computes weighted sum as follows:
+                    # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
+                    # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
+
                     # stormpy takes care of correct weighting with weightVector=rel_coeffs and optimizing in correct direction
                     formula_interm = "multi("
                     for target in rel_targets:
@@ -232,6 +238,10 @@ class ModelChecker:
                     # we need to use multi-objective model-checking
                     rel_targets = [self.targets[i - 1] for i in rel_ind]
                     rel_coeffs = [self.coeff[i - 1] for i in rel_ind]
+
+                    # PcaaWeightVectorChecker computes weighted sum as follows:
+                    # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
+                    # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
 
                     # stormpy takes care of correct weighting with weightVector=rel_coeffs and optimizing in correct direction
                     formula_interm = "multi("
