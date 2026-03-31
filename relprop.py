@@ -539,7 +539,6 @@ def main():
 
         exact = input_args.exact
 
-
         if exact:
             common.colourerror("Not implemented!")
             return 0
@@ -650,13 +649,17 @@ def main():
 
                 if not input_args.checkModel:
                     common.colourinfo("Solving MOA query...")
-                    formula_interm = "multi("
+                    formula_max_interm = "multi("
+                    formula_min_interm = "multi("
                     for pred in equivClass:
-                        formula_interm += "R{\"R" + str(pred) + "\"}max=? [ C ], "
-                    formula = formula_interm[:-2] + ")"
-                    properties = stormpy.parse_properties(formula)
+                        formula_max_interm += "R{\"R" + str(pred) + "\"}max=? [ C ], "
+                        formula_min_interm += "R{\"R" + str(pred) + "\"}min=? [ C ], "
+                    formula_max = formula_max_interm[:-2] + ")"
+                    formula_min = formula_min_interm[:-2] + ")"
+                    properties_max = stormpy.parse_properties(formula_max)
+                    properties_min = stormpy.parse_properties(formula_min)
                     weightVectorMax = [1 for _ in equivClass]
-                    weightVectorMin = [-1 for _ in equivClass]
+                    weightVectorMin = [1 for _ in equivClass]
 
                     #### cast to reach
                     """formula_reach_interm = "multi("
@@ -682,10 +685,12 @@ def main():
 
                         #### total reward
                         env = stormpy.Environment()
+                        env.solver_environment.set_force_sound()
                         if compOp in ['>=', '>', '=', '!=']:
-                            weighted_model_checker_max, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
-                                                                                                                        processed_model,
-                                                                                                                        properties[0].raw_formula)
+                            weighted_model_checker_max, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(
+                                env,
+                                processed_model,
+                                properties_max[0].raw_formula)
                             weighted_model_checker_max.set_weighted_precision(0.000001)
                             weighted_model_checker_max.check(env, weightVectorMax)
                             point_max = weighted_model_checker_max.get_achievable_point()
@@ -696,7 +701,7 @@ def main():
                             weighted_model_checker_min, _ = stormpy._core._make_weighted_objective_mdp_model_checker_Double(
                                 env,
                                 processed_model,
-                                properties[0].raw_formula)
+                                properties_min[0].raw_formula)
                             weighted_model_checker_min.set_weighted_precision(0.000001)
                             weighted_model_checker_min.check(env, weightVectorMin)
                             point_min = weighted_model_checker_min.get_achievable_point()

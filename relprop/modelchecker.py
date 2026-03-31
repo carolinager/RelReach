@@ -56,7 +56,7 @@ class ModelChecker:
         return res_dict
 
     # computing optimal values (as specified in formula) for a state-scheduler combination c with |relInd(c)|>1
-    def modelCheckMulti(self, formula, state, schedind, rel_coeffs, res_dict):
+    def modelCheckMulti(self, formula, state, schedind, weight_vec, res_dict):
         properties = stormpy.parse_properties(formula)
         env = stormpy.Environment()
 
@@ -70,7 +70,7 @@ class ModelChecker:
                                                                                                                self.model,
                                                                                                                properties[0].raw_formula,
                                                                                                                compute_scheduler=False)
-            weighted_model_checker.check(env, [Rational(r) for r in rel_coeffs])
+            weighted_model_checker.check(env, [Rational(r) for r in weight_vec])
             # todo ensure initial state is the one we are indeed interested in
 
             res_weighted = weighted_model_checker.get_optimal_weighted_sum()
@@ -84,17 +84,19 @@ class ModelChecker:
                                                                                   )"""
             res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
         else:
+            env.solver_environment.set_force_sound()
             weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
                                                                                                               self.model,
                                                                                                               properties[0].raw_formula,
                                                                                                               compute_scheduler=False)
             weighted_model_checker.set_weighted_precision(0.000001)
-            weighted_model_checker.check(env, rel_coeffs)
+            weighted_model_checker.check(env, weight_vec)
             # todo ensure initial state is the one we are indeed interested in
 
-            res_point = weighted_model_checker.get_achievable_point()
-            # weighted_model_checker.get_optimal_weighted_sum() adds weighting according to min / max objectives, does not perform the desired computation (below) but with opposing sign for minimzing objectives
-            res_weighted = sum([res_point[i] * rel_coeffs[i] for i in range(len(rel_coeffs))])
+            # PcaaWeightVectorChecker computes weighted sum as follows:
+            # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
+            # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
+            res_weighted = weighted_model_checker.get_optimal_weighted_sum()
             """
             begin old call:
             res_weighted, _, sched = stormpy.compute_rel_reach_helper(env,
@@ -110,7 +112,7 @@ class ModelChecker:
             # where lower <= exact_res <= upper
             # and guarantees that | res - exact_res | <= | exact_res | * 0.000001
             # to remain sound we need to acknowledge that this is only an approximative result
-            if res_weighted >= 0: # 0.041618137757295066
+            if res_weighted >= 0:
                 res_under = res_weighted / (1 + 0.000001)
                 res_over = res_weighted / (1 - 0.000001)
             else:
@@ -158,7 +160,7 @@ class ModelChecker:
                     else:
                         # max {q * P(F a)} = q * min {P(F a)} for q<0
                         formula = "Pmin=? [F \"" + rel_target + "\"]"
-
+                    print(formula)
                     res_max_dict = self.modelCheckSingle(formula, state, schedind, rel_coeff, res_max_dict)
 
                 else:
@@ -166,17 +168,23 @@ class ModelChecker:
                     rel_targets = [self.targets[i - 1] for i in rel_ind]
                     rel_coeffs = [self.coeff[i - 1] for i in rel_ind]
 
-                    # PcaaWeightVectorChecker computes weighted sum as follows:
-                    # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
-                    # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
+                    # create proper input for PcaaWeightVectorChecker
+                    weight_vec = []
 
                     # stormpy takes care of correct weighting with weightVector=rel_coeffs and optimizing in correct direction
                     formula_interm = "multi("
-                    for target in rel_targets:
-                        formula_interm += "Pmax=?  [F \"" + target + "\"], "
+                    for i in range(len(rel_targets)):
+                        target = rel_targets[i]
+                        rel_coeff = rel_coeffs[i]
+                        if rel_coeff >= 0:
+                            formula_interm += "Pmax=?  [F \"" + target + "\"], "
+                            weight_vec.append(rel_coeff)
+                        else:
+                            formula_interm += "Pmin=?  [F \"" + target + "\"], "
+                            weight_vec.append(-1 * rel_coeff)
                     formula = formula_interm[:-2] + ")"
-
-                    res_max_dict = self.modelCheckMulti(formula, state, schedind, rel_coeffs, res_max_dict)
+                    print(formula)
+                    res_max_dict = self.modelCheckMulti(formula, state, schedind, weight_vec, res_max_dict)
 
 
             # Compute the sums
