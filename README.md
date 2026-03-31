@@ -84,9 +84,11 @@ relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as 
 - TS ```--modelPath ./benchmark/TS/th10_20.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets terml1 terml1 --coefficient 1 -1 0``` and same for ```terml2```
   - Returns "No" instantly
   - Analogously for the other variants
-- PW ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
+- TA(2): ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
+  - Returns "No" instantly, already for target j0 alone 
+- PW(2) ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
-
+  
 ### Reachability Sample commands for ```numScheds```=1, ```numInit```=2:
 We want to check whether for all schedulers,
 the weighted sum of the probability of reaching "target1" from the first initial state
@@ -103,15 +105,18 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 - SD: ```--modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 -cop '>'```
   - Returns "No" instantly for all models, also for ```- cop >=```
   - Analogously for the other maze variants
-- TA: ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
-  - Returns "No" instantly, already for target j0 alone (this property is equiv to TA with ```--numScheds 2```)
+- TA(1): ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
+  - Returns "No" instantly, already for target j0 alone 
+- PW(1) ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
+  - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
+
 
 ### Büchi Sample Commands
 - IJ: ```--modelPath ./benchmark/IJ/ij_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
   - Returns "Yes" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 - IJ-boycott: ```--modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
-  - Expected to return "No" instantly
+  - Returns "No" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 
 
