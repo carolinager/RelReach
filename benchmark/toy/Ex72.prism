@@ -1,4 +1,8 @@
 // toy example from Ex 7.2
+// --modelPath ./benchmark/toy/Ex72.prism --numPred 2 --numInit 4 --numScheds 1 --schedList 1 1 1 1 --targets t t t tp --coefficient -1 1 0 1 -1 0 -cop >
+// state rewards: Found Pareto optimal point [0.11111093572500595, 0.7777776010010824] for weight vector [1, 1] (correct?)
+
+
 
 mdp
 

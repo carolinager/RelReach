@@ -637,9 +637,8 @@ def main():
                 # Construct combined MDP
                 common.colourinfo("Constructing combined MDP...")
                 start_moa_preproc_time = time.perf_counter()
-                # processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
-                processed_model = transform_to_moa_for_absorb(model, equivClass, scheds_by_pred, numScheds, numInit, numSum,
-                                                   schedList, targets, coeff)
+                processed_model = transform_to_moa(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
+                #processed_model = transform_to_moa_for_absorb(model, equivClass, scheds_by_pred, numScheds, numInit, numSum, schedList, targets, coeff)
                 end_moa_preproc_time = time.perf_counter()
                 common.colourinfo("Constructing the combined MDP took: " + str(round(end_moa_preproc_time - start_moa_preproc_time, 2)) + " seconds",
                                   False)
