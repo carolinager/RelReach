@@ -73,6 +73,7 @@ class ModelChecker:
             # # res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
             # return direction * res_weighted
         else:
+            env.solver_environment.set_force_sound()
             weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
                                                                                                               self.model,
                                                                                                               properties[0].raw_formula,
