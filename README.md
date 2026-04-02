@@ -1,38 +1,32 @@
 # RelProp
 
-RelProp implements the model-checking algorithm for relational reachability and Büchi properties presented in the paper "Efficient Probabilistic Model Checking for Relational Reachability" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
+RelProp implements the model-checking algorithms for relational reachability and Büchi properties presented in the paper "Tractable Hyperproperties for MDPs" by Lina Gerlach, Tobias Winkler, Erika Ábrahám, Borzoo Bonakdarpour, and Sebastian Junges.
 More precisely, it allows to check universally quantified relational reachability or Büchi properties
 like "Does it hold for all schedulers that the probability of reaching states labeled a is the same as the probability of reaching states labeled b?"
 RelProp works on top of storm(py).
-Disjunctive relational reachability properties (i.e. the negation of multi-objective relational reachability properties) are not included in the current prototype since the underlying storm(py) functionality for multi-objective model-checking currently contains bugs.
+Disjunctive relational reachability properties (i.e. the negation of multi-objective relational reachability properties) are not included in the current prototype.
 
 ## Usage
-
-### Docker (Recommended)
-A docker image for the tool is provided on [Zenodo](https://www.doi.org/10.5281/zenodo.15209574).
-DOI: 10.5281/zenodo.15209574
 
 ### Arguments:
 #### Required Arguments:
 - ```--modelPath```: path to MDP model file
 - ```--numScheds```: number of schedulers to quantify over ($n$)
-- ```--numInit```: number of initial state labels ($m \cdot l$)
-- ```--schedList```: list of scheduler indices (corresponding to the family of indices $k_{1,1}, ..., k_{m,l}$).
+- ```--numInit```: number of initial state labels ($m$)
+- ```--schedList```: list of scheduler indices (corresponding to the family of indices $k_{1}, ..., k_{m}$).
   Expected to be a string of integers, separated by spaces, of length ```numInit```, covering all indices from 1 to ```numScheds```
-- ```--targets```: list of target labels $T_{1,1}, ..., T_{m,l}$ (one per initial state).
+- ```--targets```: list of target labels $T_{1}, ..., T_{m}$ (one per initial state).
   Expected to be a string of labels, separated by spaces, of length ```numInit```
-- ```--coefficient```: list of coefficients $q_{1,1}, ..., q_{m,1}, q_1, q_{1,2}, ... ,q_{m,l}, q_{l}$, where elements ($q_1, ..., q_l$) are interpreted as bounds.
-  Expected to be a string of rational numbers, separated by spaces, of length ```numInit+numPred```
+- ```--coefficient```: list of coefficients $q_{1}, ..., q_{m}, q$, where $q$ is interpreted as bound.
+  Expected to be a string of rational numbers, separated by spaces, of length ```numInit+1```
 
 #### Optional Arguments for the Property:
-- ```--numPred```: number of predicates ($l$)
-- ```--comparisonOperator```: '=', '<', '>', '<=', '>=', '!='. Default is '='. '=' is not supported if ```numPred```>1
+- ```--comparisonOperator```: '=', '<', '>', '<=', '>=', '!='. Default is '='
 - ```--epsilon```: rational number for approximate comparison. Default is 0. Only allowed to be non-zero if ```comparisonOperator``` is '=' or '!='
-- ```--buechi```: Interpret targets as Büchi objectives. Only supported if ```numPred```=1
+- ```--buechi```: Interpret targets as Büchi objectives
 
 #### Optional Arguments for the Computation:
 - ```--checkModel```: if flag is set: check if model file can be parsed (property is not being checked)
-- ```--exact```: if flag is set: do exact computation with Rationals in storm
 
 
 ### Assumptions on the Model File
@@ -50,8 +44,7 @@ git clone https://github.com/carolinager/RelProp
 
 - Install the dependencies listed in `RelProp/requirements.txt`.
   Most importantly, RelProp depends on a [fork](https://github.com/carolinager/stormpy/tree/relprop) of [stormpy](https://github.com/moves-rwth/stormpy) which includes [pycarl](https://moves-rwth.github.io/pycarl) and has its own dependencies.
-  Further, stormpy requires [storm](https://www.stormchecker.org) and pycarl requires [carl-storm](https://github.com/moves-rwth/carl-storm/).
-  The concrete versions with which our implementation was tested are listed in `RelProp/requirements.txt`.
+  Further, stormpy requires [storm](https://www.stormchecker.org) and pycarl requires [carl-storm](https://github.com/moves-rwth/carl-storm/), these are automatically installed when installing stormpy.
   For instructions how to install these dependencies, we refer to the installation instructions provided on the respective websites.
 
 - You can now execute commands by running
@@ -66,12 +59,11 @@ See above for an explanation of the arguments as well as sample commands.
 We want to check whether for all pairs of schedulers,
 the weighted sum of the probability of reaching "target1" from the first initial state under the first scheduler
 plus the probability of reaching "target2" from the second initial state under the second scheduler
-relates to the bound $q_{m+1} (i.e., the last element of ```coefficients```) as specified by the comparison operator (if applicable, wrt epsilon).
+relates to the bound $q$ (i.e., the last element of ```coefficients```) as specified by the comparison operator (if applicable, wrt epsilon).
 
 #### Single state labeled both "init1" and "init2"
 - RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0```
-  - Returns "Unknown" instantly, also with epsilon 0.000001 (too small)
-  - with ```--exact``` this returns "Yes"
+  - Returns "Unknown" instantly, also with epsilon 0.000001 
 - RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001```
   - Returns "Yes" instantly
 - RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001```
@@ -98,7 +90,7 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 #### Single state labeled both "init1" and "init2"
 - VN.1: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --epsilon 0.1```
   - Returns "Yes" instantly
-- VN.2: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --comparisonOperator =```
+- VN.2: ```--modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0```
   - Returns "No" instantly
 
 #### Different states labeled "init1" and "init2"
@@ -115,14 +107,15 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 - IJ: ```--modelPath ./benchmark/IJ/ij_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
   - Returns "Yes" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
-- IJ-boycott: ```--modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
+- IJ-asynch: ```--modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi```
   - Returns "No" instantly
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 
 
 ## Tested with:
 - stormpy fork, relprop branch: https://github.com/carolinager/stormpy/tree/relprop
-  - Builds correct storm version (1.12.0 master branch)
-  - Includes pycarl for carl-storm 14.34
+  - Based on [stormpy 1.12.0](https://github.com/stormchecker/stormpy/releases/tag/1.12.0)
+  - Depends on [storm 1.12.0 (master branch)](https://github.com/stormchecker/storm/releases/tag/1.12.0)
+  - Includes pycarl for [carl-storm 14.34](https://github.com/stormchecker/carl-storm/releases/tag/14.34)
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk

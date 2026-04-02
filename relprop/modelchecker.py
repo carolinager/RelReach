@@ -5,13 +5,12 @@ from relprop.utility import common
 import datetime
 
 class ModelChecker:
-    def __init__(self, model, ind_dict, targets, compOp, coeff, exact, epsilon):
+    def __init__(self, model, ind_dict, targets, compOp, coeff, epsilon):
         self.model = model
         self.ind_dict = ind_dict
         self.targets = targets
         self.compOp = compOp
         self.coeff = coeff
-        self.exact = exact
         self.epsilon = epsilon
 
     # computing optimal values (as specified in formula) for a state-scheduler combination c with |relInd(c)|=1
@@ -19,12 +18,7 @@ class ModelChecker:
         properties = stormpy.parse_properties(formula)
         env = stormpy.Environment()
 
-        if self.exact:
-            env.solver_environment.set_force_exact()
-            env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-            env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-        else:
-            env.solver_environment.set_force_sound()
+        env.solver_environment.set_force_sound()
 
         res = stormpy.model_checking(self.model,
                                      properties[0].raw_formula,
@@ -32,75 +26,51 @@ class ModelChecker:
                                      environment=env)
         res_at_state = res.at(state)
 
-        if self.exact:
-            res_weighted = Rational(rel_coeff) * res_at_state
-            # res_dict[(state, schedind)] = res_weighted
-            return res_weighted
-        else:
-            res_weighted = rel_coeff * res_at_state
-            # stormpy.model_checking currently does not return sound lower and upper bound but (lower + upper)/2
-            # to remain sound we need to acknowledge that this is only an approximative result
-            # we know res_at_state >= 0
-            if rel_coeff >= 0:
-                res_opt_under = res_weighted / (1 + 0.000001)
-                res_opt_over = res_weighted / (1 - 0.000001)
-            else:
-                res_opt_under = res_weighted / (1 - 0.000001)
-                res_opt_over = res_weighted / (1 + 0.000001)
-            # res_dict[(state, schedind)] = (res_opt_under, res_opt_over)
-            return (res_opt_under, res_opt_over)
 
-        # return res_dict
+        res_weighted = rel_coeff * res_at_state
+        # stormpy.model_checking currently does not return sound lower and upper bound but (lower + upper)/2
+        # to remain sound we need to acknowledge that this is only an approximative result
+        # we know res_at_state >= 0
+        if rel_coeff >= 0:
+            res_opt_under = res_weighted / (1 + 0.000001)
+            res_opt_over = res_weighted / (1 - 0.000001)
+        else:
+            res_opt_under = res_weighted / (1 - 0.000001)
+            res_opt_over = res_weighted / (1 + 0.000001)
+        return (res_opt_under, res_opt_over)
 
     # computing optimal values (as specified in formula) for a state-scheduler combination c with |relInd(c)|>1
     def modelCheckMulti(self, formula, weight_vec, direction):
         properties = stormpy.parse_properties(formula)
         env = stormpy.Environment()
 
-        if self.exact:
-            common.colourerror("Exact computation currently not supported!")
-            # env.solver_environment.set_force_exact()
-            # env.solver_environment.set_linear_equation_solver_type(stormpy.EquationSolverType.eigen)
-            # env.solver_environment.minmax_solver_environment.method = stormpy.MinMaxMethod.policy_iteration
-            #
-            # weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_exact(env,
-            #                                                                                                    self.model,
-            #                                                                                                    properties[0].raw_formula,
-            #                                                                                                    compute_scheduler=False)
-            # weighted_model_checker.check(env, [Rational(r) for r in weight_vec])
-            #
-            # res_weighted = weighted_model_checker.get_optimal_weighted_sum()
-            # # res_dict[(state, schedind)] = res_weighted  # helper already did the weighting
-            # return direction * res_weighted
+        env.solver_environment.set_force_sound()
+        weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
+                                                                                                          self.model,
+                                                                                                          properties[0].raw_formula,
+                                                                                                          compute_scheduler=False)
+        weighted_model_checker.set_weighted_precision(0.000001)
+        weighted_model_checker.check(env, weight_vec) # returns result for the initial state
+
+        # PcaaWeightVectorChecker computes weighted sum as follows:
+        # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
+        # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
+        res_weighted = weighted_model_checker.get_optimal_weighted_sum()
+
+        # StandardPcaaWeightVectorChecker currently returns res := (lower + upper)/2 for both under- and over-Approx
+        # where lower <= exact_res <= upper
+        # and guarantees that | res - exact_res | <= | exact_res | * 0.000001
+        # to remain sound we need to acknowledge that this is only an approximative result
+        if res_weighted >= 0:
+            res_under = res_weighted / (1 + 0.000001)
+            res_over = res_weighted / (1 - 0.000001)
         else:
-            env.solver_environment.set_force_sound()
-            weighted_model_checker, inverter = stormpy._core._make_weighted_objective_mdp_model_checker_Double(env,
-                                                                                                              self.model,
-                                                                                                              properties[0].raw_formula,
-                                                                                                              compute_scheduler=False)
-            weighted_model_checker.set_weighted_precision(0.000001)
-            weighted_model_checker.check(env, weight_vec) # returns result for the initial state
-
-            # PcaaWeightVectorChecker computes weighted sum as follows:
-            # sum_j weightvector[j] * sign(j) * get_achievable_point()[j]
-            # where sign(j) = -1 if jth objective is minimizing and sign(j)=1 otherwise
-            res_weighted = weighted_model_checker.get_optimal_weighted_sum()
-
-            # StandardPcaaWeightVectorChecker currently returns res := (lower + upper)/2 for both under- and over-Approx
-            # where lower <= exact_res <= upper
-            # and guarantees that | res - exact_res | <= | exact_res | * 0.000001
-            # to remain sound we need to acknowledge that this is only an approximative result
-            if res_weighted >= 0:
-                res_under = res_weighted / (1 + 0.000001)
-                res_over = res_weighted / (1 - 0.000001)
-            else:
-                res_under = res_weighted / (1 - 0.000001)
-                res_over = res_weighted / (1 + 0.000001)
-            # res_dict[(state, schedind)] = (res_under, res_over)
-            if direction == 1:
-                return (res_under, res_over)
-            elif direction == -1:
-                return (direction * res_over, direction * res_under)
+            res_under = res_weighted / (1 - 0.000001)
+            res_over = res_weighted / (1 + 0.000001)
+        if direction == 1:
+            return (res_under, res_over)
+        elif direction == -1:
+            return (direction * res_over, direction * res_under)
 
 
     # Main model-checking function
@@ -110,14 +80,9 @@ class ModelChecker:
         res_min_dict = {k: 0 for k in self.ind_dict.keys()}
         res_max_dict = {k: 0 for k in self.ind_dict.keys()}
 
-        if self.exact:
-            bound = Rational(self.coeff[-1])
-            bound_upper = bound + Rational(self.epsilon)
-            bound_lower = bound - Rational(self.epsilon)
-        else:
-            bound = self.coeff[-1]
-            bound_upper = bound + self.epsilon
-            bound_lower = bound - self.epsilon
+        bound = self.coeff[-1]
+        bound_upper = bound + self.epsilon
+        bound_lower = bound - self.epsilon
         bound_upper_str = str(float(bound_upper)) + " (specified bound + epsilon)"
         bound_lower_str = str(float(bound_lower)) + " (specified bound - epsilon)"
 
@@ -175,15 +140,11 @@ class ModelChecker:
             common.colourinfo(
                 f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Aggregating maximal values...")
             max_sum_list = list(res_max_dict.values())
-            if self.exact:
-                max_sum = sum(max_sum_list)
-                max_sum_lower, max_sum_upper = max_sum, max_sum
-                common.colourinfo("Max weighted sum: " + str(max_sum), False)
-            else:
-                max_sum_lower = sum([l for (l, _) in max_sum_list])
-                max_sum_upper = sum([u for (_, u) in max_sum_list])
-                common.colourinfo("Lower bound for max weighted sum: " + str(max_sum_lower), False)
-                common.colourinfo("Upper bound for max weighted sum: " + str(max_sum_upper), False)
+
+            max_sum_lower = sum([l for (l, _) in max_sum_list])
+            max_sum_upper = sum([u for (_, u) in max_sum_list])
+            common.colourinfo("Lower bound for max weighted sum: " + str(max_sum_lower), False)
+            common.colourinfo("Upper bound for max weighted sum: " + str(max_sum_upper), False)
 
             # for = / !=: check whether we can already conclude the property does not / does hold and terminate early
             if self.compOp == '=':
@@ -258,15 +219,11 @@ class ModelChecker:
                 f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Aggregating minimal values...")
 
             min_sum_list = list(res_min_dict.values())
-            if self.exact:
-                min_sum = sum(min_sum_list)
-                min_sum_lower, min_sum_upper = min_sum, min_sum
-                common.colourinfo("Min weighted sum: " + str(min_sum), False)
-            else:
-                min_sum_lower = sum([l for (l, _) in min_sum_list])
-                min_sum_upper = sum([u for (_, u) in min_sum_list])
-                common.colourinfo("Lower bound for min weighted sum: " + str(min_sum_lower), False)
-                common.colourinfo("Upper bound for min weighted sum: " + str(min_sum_upper), False)
+
+            min_sum_lower = sum([l for (l, _) in min_sum_list])
+            min_sum_upper = sum([u for (_, u) in min_sum_list])
+            common.colourinfo("Lower bound for min weighted sum: " + str(min_sum_lower), False)
+            common.colourinfo("Upper bound for min weighted sum: " + str(min_sum_upper), False)
 
 
         # Step 4: Compare sum(s) to bound, output result with brief explanation
@@ -301,7 +258,6 @@ class ModelChecker:
 
             elif max_sum_upper >= bound:
                 # this can only happen if we do not do exact computations
-                assert (not self.exact), "Something went wrong. upper bound of max sum >= bound but lower bound of max sum < bound even though we do exact computations"
                 common.colourinfo(
                     "Result unknown. "
                     "The lower bound for the max weighted sum is < specified bound " + str(

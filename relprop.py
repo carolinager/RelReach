@@ -157,18 +157,13 @@ def main():
         input_args = parseArguments()
 
         model = Model(input_args.modelPath)
-        numPred = input_args.numPred  # l
         numScheds = input_args.numScheds # n
         numInit = input_args.numInit # m*l
-        schedList = input_args.schedList # family of indices k_1 ... k_m / for m-o: k_1,1, ..., k_m,l
+        schedList = input_args.schedList # family of indices k_1 ... k_m
         targets = input_args.targets
-        coeff = input_args.coefficient # q_1, ..., q_m, q / for m-o: q_1,1, ..., q_m,1, q_1, q_1,2, ..., q_m,l, q_l (coeff q_1, ...,q_l are interpreted as bound)
+        coeff = input_args.coefficient # q_1, ..., q_m, q
         compOp = input_args.comparisonOperator
         buechi = input_args.buechi
-
-        exact = input_args.exact
-
-        assert (not exact), "Exact computation currently not supported by stormpy multi-objective bindings!"
 
         # correctness checks
         if compOp in ['=', '!=']:
@@ -182,10 +177,8 @@ def main():
             common.colourerror("Unnecessary schedulers quantified: Number of initial state labels < number of schedulers. Will assume numScheds := numInit.")
             numScheds = numInit
 
-        assert (numPred==1), "Multi-objective properties are currently not supported"
-
         assert len(targets) == numInit, "Number of target labels does not match number of initial state labels."
-        assert len(coeff) == (numInit+numPred), "Number of coefficients does not match number of initial state labels + number of predicates."
+        assert len(coeff) == (numInit+1), "Number of coefficients does not match number of initial state labels + number of predicates."
         assert len(schedList) == numInit, "Size of scheduler list does not match number of initial state labels."
         assert set(schedList) == set(range(1,numScheds+1)), "List of schedulers does not cover the range {1,...,numScheds} or exceeds it."
 
@@ -195,48 +188,45 @@ def main():
         options.set_build_all_labels()
 
         common.colourinfo(f"{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S,%f")}: Parsing + building model...")
-        model.parseModel(exact, options)
+        model.parseModel(False, options)
         parsing_time = time.perf_counter()
         common.colourinfo("Number of states: {0}".format(model.parsed_model.nr_states), False)
         common.colourinfo("Number of transitions: {0}".format(model.parsed_model.nr_transitions), False)
         common.colourinfo("Building the model took: " + str(round(parsing_time - start_time, 2)) + " seconds", False)
 
         # assert each init label labels exactly one state, create state-sched-combinations and store which indices are associated with which initial state
-        if numPred == 1:
-            state_sched_comb = set()
-            ind_dict = {}
+        state_sched_comb = set()
+        ind_dict = {}
+        if buechi:
+            targets_by_comb = {}
+        for i in range(1,numInit+1):
+            states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
+            assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
+            comb = (states_i[0], schedList[i-1])
+            state_sched_comb.add(comb)
+            if comb in ind_dict.keys():
+                ind_dict[comb].append(i)
+            else:
+                ind_dict[comb] = [i]
             if buechi:
-                targets_by_comb = {}
-            for i in range(1,numInit+1):
-                states_i = list(model.parsed_model.labeling.get_states(f"init{i}"))
-                assert len(states_i) == 1, f"No or more than a single state is labeled with init{i}"
-                comb = (states_i[0], schedList[i-1])
-                state_sched_comb.add(comb)
-                if comb in ind_dict.keys():
-                    ind_dict[comb].append(i)
+                if comb in targets_by_comb.keys():
+                    targets_by_comb[comb].add(targets[i-1])
                 else:
-                    ind_dict[comb] = [i]
-                if buechi:
-                    if comb in targets_by_comb.keys():
-                        targets_by_comb[comb].add(targets[i-1])
-                    else:
-                        targets_by_comb[comb] = {targets[i-1]}
-            common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
+                    targets_by_comb[comb] = {targets[i-1]}
+        common.colourinfo("State-scheduler combinations and associated initial state label indices: " + str(ind_dict))
 
-            processed_model = model.parsed_model
-            processed_ind_dict = ind_dict
-            processed_targets = targets
-            if buechi:
-                processed_model, processed_ind_dict, processed_targets = buechi_processing(model, ind_dict, numInit, targets, targets_by_comb)
-                assert len(targets) == len(processed_targets), "Number of new targets does not match number of original targets."
+        processed_model = model.parsed_model
+        processed_ind_dict = ind_dict
+        processed_targets = targets
+        if buechi:
+            processed_model, processed_ind_dict, processed_targets = buechi_processing(model, ind_dict, numInit, targets, targets_by_comb)
+            assert len(targets) == len(processed_targets), "Number of new targets does not match number of original targets."
 
-            # Model-checking
-            if not input_args.checkModel:
-                modelchecker = ModelChecker(processed_model, processed_ind_dict, processed_targets,
-                                            compOp, coeff, exact, epsilon)
-                modelchecker.modelCheck()
-        else:
-            common.colourerror("Multi-objective currently not implemented.")
+        # Model-checking
+        if not input_args.checkModel:
+            modelchecker = ModelChecker(processed_model, processed_ind_dict, processed_targets,
+                                        compOp, coeff, epsilon)
+            modelchecker.modelCheck()
 
         # Output statistics
         end_time = time.perf_counter()
