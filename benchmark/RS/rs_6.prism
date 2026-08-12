@@ -1,0 +1,41 @@
+// Rejection Sampling
+// fair coins
+
+mdp
+
+const int N=6; // N > 0, the algorithm samples uniformly from {0, ..., N-1}
+// need to sample 3 bits
+
+
+module main
+    n : [0..3] init 0;
+    b1 : [0..1] init 0;
+    b2 : [0..1] init 0;
+    b3 : [0..1] init 0;
+    [] (n=0)&(b1=0)&(b2=0)&(b3=0) -> 0.5 : (n'=1) + 0.5 : (n'=1)&(b1'=1);
+    [] (n=1)&(b2=0)&(b3=0) -> 0.5 : (n'=2) + 0.5 : (n'=2)&(b2'=1);
+    [] (n=2)&(b3=0) -> 0.5 : (n'=3) + 0.5 : (n'=3)&(b3'=1);
+    [] (n=3)&(b1=0) -> 1 : true; // result=0,1,2,3
+    [] (n=3)&(b1=1)&(b1=0) -> 1 : true; // result = 4,5
+    [] (n=3)&(b1=1)&(b2=1) -> 1 : (n'=0)&(b1'=0)&(b2'=0)&(b3'=0); // result exceeds N-1, retry
+endmodule
+
+label "init1" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init2" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init3" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init4" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init5" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init6" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init7" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init8" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init9" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init10" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init11" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+label "init12" = (n=0)&(b1=0)&(b2=0)&(b3=0);
+
+label "d0" = (n=3)&(b1=0)&(b2=0)&(b3=0);
+label "d1" = (n=3)&(b1=0)&(b2=0)&(b3=1);
+label "d2" = (n=3)&(b1=0)&(b2=1)&(b3=0);
+label "d3" = (n=3)&(b1=0)&(b2=1)&(b3=1);
+label "d4" = (n=3)&(b1=1)&(b2=0)&(b3=0);
+label "d5" = (n=3)&(b1=1)&(b2=0)&(b3=1);

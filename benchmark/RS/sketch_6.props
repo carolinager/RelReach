@@ -1,0 +1,15 @@
+ES sched1
+E s0(sched1)
+Restrict s0 init1
+P{s0}[F "d0"] <= P{s0}[F "d1"]
+P{s0}[F "d1"] <= P{s0}[F "d0"]
+P{s0}[F "d1"] <= P{s0}[F "d2"]
+P{s0}[F "d2"] <= P{s0}[F "d1"]
+P{s0}[F "d2"] <= P{s0}[F "d3"]
+P{s0}[F "d3"] <= P{s0}[F "d2"]
+P{s0}[F "d3"] <= P{s0}[F "d4"]
+P{s0}[F "d4"] <= P{s0}[F "d3"]
+P{s0}[F "d4"] <= P{s0}[F "d5"]
+P{s0}[F "d5"] <= P{s0}[F "d4"]
+P{s0}[F "d5"] <= P{s0}[F "d0"]
+P{s0}[F "d0"] <= P{s0}[F "d5"]

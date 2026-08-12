@@ -1,0 +1,42 @@
+// Rejection Sampling
+// biased coins
+
+mdp
+
+const int N=5; // N > 0, the algorithm samples uniformly from {0, ..., N-1}
+
+const double bias_l = 59/100; // lower bound for bias towards 0
+const double bias_u = 61/100; // upper bound for bias towards 0
+
+module main
+    n : [0..2] init 0;
+    b1 : [0..1] init 0;
+    b2 : [0..1] init 0;
+    [l] (n=0)&(b1=0)&(b2=0) -> bias_l : (n'=1) + (1-bias_l) : (n'=1)&(b1'=1);
+    [u] (n=0)&(b1=0)&(b2=0) -> bias_u : (n'=1) + (1-bias_u) : (n'=1)&(b1'=1);
+    [l] (n=1)&(b2=0) -> bias_l : (n'=1) + (1-bias_l) : (n'=2)&(b2'=1);
+    [u] (n=1)&(b2=0) -> bias_u : (n'=1) + (1-bias_u) : (n'=2)&(b2'=1);
+    [] (n=2)&(b1=0)&(b2=0) 1 : true;
+    [] (n=2)&(b1=0)&(b2=0) 1 : true;
+    [] (n=2)&(b1=0)&(b2=0) 1 : true;
+    [] (n=2)&(b1=0)&(b2=0) 1 : true;
+    [] (n=2)&(b1=0)&(b2=0) 1 : true;
+endmodule
+
+label "init1" = (n=0)&(b1=0)&(b2=0);
+label "init2" = (n=0)&(b1=0)&(b2=0);
+label "init3" = (n=0)&(b1=0)&(b2=0);
+label "init4" = (n=0)&(b1=0)&(b2=0);
+label "init5" = (n=0)&(b1=0)&(b2=0);
+label "init6" = (n=0)&(b1=0)&(b2=0);
+label "init7" = (n=0)&(b1=0)&(b2=0);
+label "init8" = (n=0)&(b1=0)&(b2=0);
+label "init9" = (n=0)&(b1=0)&(b2=0);
+label "init10" = (n=0)&(b1=0)&(b2=0);
+
+label "d0" = (n=2)&(b1=0)&(b2=0);
+label "d1" = (n=2)&(b1=0)&(b2=0);
+label "d2" = (n=2)&(b1=0)&(b2=0);
+label "d3" = (n=2)&(b1=0)&(b2=0);
+label "d4" = (n=2)&(b1=0)&(b2=0);
+
