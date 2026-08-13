@@ -69,7 +69,7 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 
 #### Single state labeled both "init1" and "init2"
 - RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0```
-  - Returns "Unknown" instantly, also with epsilon 0.000001 
+  - Returns "Unknown" instantly, also with epsilon 0.000001
 - RT: ```--modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001```
   - Returns "Yes" instantly
 - RT_w: ```--modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001```
@@ -83,10 +83,10 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - Returns "No" instantly
   - Analogously for the other variants
 - TA(2): ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
-  - Returns "No" instantly, already for target j0 alone 
+  - Returns "No" instantly, already for target j0 alone
 - PW(2) ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
-  
+
 ### Reachability Sample commands for ```numScheds```=1, ```numInit```=2:
 We want to check whether for all schedulers,
 the weighted sum of the probability of reaching "target1" from the first initial state
@@ -104,7 +104,7 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - Returns "No" instantly for all models, also for ```- cop '>='```
   - Analogously for the other maze variants
 - TA(1): ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
-  - Returns "No" instantly, already for target j0 alone 
+  - Returns "No" instantly, already for target j0 alone
 - PW(1) ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
@@ -118,24 +118,28 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - For the other values for N: Change targets to ```--targets t{N-1} t{N}```
 
 ### Multi-Objective Reachability Sample Commands
-- FDR: 
+- FDR:
   - standard / 0.5: ```--modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
     - Returns "No" after ~60sec (note this is the negation of the property in the paper)
     - with ```--exact``` this returns "No" instantly
   - [0.59,0.61]: ```--modelPath ./benchmark/FDR/fdr_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
     - Returns "Yes" instantly (note this is the negation of the property in the paper)
     - Returns "No" instantly for ```--epsilon``` >= 0.13
-- KY: 
+- KY:
   - standard / 0.5: ```--modelPath ./benchmark/KY/ky_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
     - Returns "No" after ~100sec (note this is the negation of the property in the paper)
     - with ```--exact``` this returns "No" instantly
-  - KY [0.59,0.61]: ```--modelPath ./benchmark/KY/ky_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
+  - [0.59,0.61]: ```--modelPath ./benchmark/KY/ky_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
     - Returns "Yes" instantly (note this is the negation of the property in the paper)
     - Returns "No" instantly for ```--epsilon``` >= 0.15
+- RS:
+  - standard / 0.5: ```--modelPath ./benchmark/RS/rs_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
+  - [0.59,0.61]: ```--modelPath ./benchmark/RS/rs_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
 
 ## Tested with:
-- [stormpy master branch](https://github.com/stormchecker/stormpy) >= May 28, 2026
+- [stormpy master branch](https://github.com/stormchecker/stormpy) Commit 751a6585cd210158eaef775010b8c9268e4a0d0b
   - Builds correct storm version ([1.13.0 master branch](https://github.com/stormchecker/storm/releases/tag/1.13.0))
   - Includes pycarl for [carl-storm 14.34](https://github.com/stormchecker/carl-storm/releases/tag/14.34)
+
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk
