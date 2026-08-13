@@ -30,8 +30,8 @@ with open(file_name, 'w') as file_x:
         for j in range(i+1,B+1):
             precond += f"&(b{j}=0)"
         postcond=f"(n'={i+1})&(b{i+1}'=1)"
-        file_x.write("    [l] " + precond + " -> bias_l : (n'=1) + (1-bias_l) : " + postcond + ";\n")
-        file_x.write("    [u] " + precond + " -> bias_u : (n'=1) + (1-bias_u) : " + postcond + ";\n")
+        file_x.write("    [l] " + precond + f" -> bias_l : (n'={i+1}) + (1-bias_l) : " + postcond + ";\n")
+        file_x.write("    [u] " + precond + f" -> bias_u : (n'={i+1}) + (1-bias_u) : " + postcond + ";\n")
 
     ## self-loop on state for {0,...,N-1}
     for n in range(N):
