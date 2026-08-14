@@ -125,16 +125,13 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - [0.59,0.61]: ```--modelPath ./benchmark/FDR/fdr_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
     - Returns "Yes" instantly (note this is the negation of the property in the paper)
     - Returns "No" instantly for ```--epsilon``` >= 0.13
-- KY:
-  - standard / 0.5: ```--modelPath ./benchmark/KY/ky_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
-    - Returns "No" after ~100sec (note this is the negation of the property in the paper)
-    - with ```--exact``` this returns "No" instantly
-  - [0.59,0.61]: ```--modelPath ./benchmark/KY/ky_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
-    - Returns "Yes" instantly (note this is the negation of the property in the paper)
-    - Returns "No" instantly for ```--epsilon``` >= 0.15
 - RS:
   - standard / 0.5: ```--modelPath ./benchmark/RS/rs_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
+    - Returns "No" after ~60sec (note this is the negation of the property in the paper)
+    - with ```--exact``` this returns "No" instantly
   - [0.59,0.61]: ```--modelPath ./benchmark/RS/rs_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=```
+    - Returns "Yes" instantly (note this is the negation of the property in the paper)
+    - Returns "No" instantly for ```--epsilon``` >= 0.13
 
 ## Tested with:
 - [stormpy master branch](https://github.com/stormchecker/stormpy) Commit 751a6585cd210158eaef775010b8c9268e4a0d0b
