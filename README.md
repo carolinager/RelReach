@@ -138,8 +138,8 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
 
 ## Tested with:
 - [stormpy master branch](https://github.com/stormchecker/stormpy) Commit 751a6585cd210158eaef775010b8c9268e4a0d0b
-  - Builds correct storm version ([1.13.0 master branch](https://github.com/stormchecker/storm/releases/tag/1.13.0))
-  - Includes pycarl for [carl-storm 14.34](https://github.com/stormchecker/carl-storm/releases/tag/14.34)
+- ([storm master branch](https://github.com/stormchecker/storm)) Commit dd98ba26ce06159587b81d528c79fb07043b2b84
+  - Includes pycarl for [carl-storm 14.35](https://github.com/stormchecker/carl-storm/releases/tag/14.35)
 
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk
