@@ -1,0 +1,203 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        stormpy-source: [nightly, stable]
+    name: stormpy ${{ matrix.stormpy-source }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+
+      - name: Install stormpy (nightly wheel)
+        if: matrix.stormpy-source == 'nightly'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          WHEEL_URL=$(gh api repos/stormchecker/stormpy-wheels/releases/tags/nightly \
+            --jq '[.assets[] | select(.name | test("cp313.*manylinux_2_34_x86_64")) | select(.name | test("debug") | not) | .browser_download_url][0]')
+          echo "Installing from: $WHEEL_URL"
+          pip install "$WHEEL_URL" termcolor
+
+      - name: Install stormpy (stable from PyPI)
+        if: matrix.stormpy-source == 'stable'
+        run: pip install stormpy termcolor
+
+      - name: Verify stormpy import
+        run: python -c "import stormpy; print('stormpy version:', stormpy.__version__)"
+
+      - name: Run sample commands with output assertions
+        run: |
+          set -e
+          PASSED=0
+          FAILED=0
+
+          run_test() {
+            local desc="$1"
+            local expected="$2"
+            shift 2
+            echo "--- $desc ---"
+            output=$(python3 relprop.py "$@" 2>&1) || true
+            if echo "$output" | grep -q "$expected"; then
+              echo "  PASS"
+              PASSED=$((PASSED + 1))
+            else
+              echo "  FAIL (expected '$expected')"
+              echo "$output"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+
+          # RT reachability
+          run_test "RT - unknown" "Result unknown" \
+            --modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0
+
+          run_test "RT - yes (epsilon)" "Property holds" \
+            --modelPath ./benchmark/RT/janitor_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001
+
+          run_test "RT_w - no (epsilon)" "Property does not hold" \
+            --modelPath ./benchmark/RT/janitor_w_10.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets target target --coefficient 1 -1 0 --epsilon 0.00001
+
+          # TA reachability
+          run_test "TA - no" "Property does not hold" \
+            --modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0
+
+          # TS reachability
+          run_test "TS - no" "Property does not hold" \
+            --modelPath ./benchmark/TS/th10_20.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets terml1 terml1 --coefficient 1 -1 0
+
+          # PW reachability (using _2 since _1 not in repo)
+          run_test "PW - no" "Property does not hold" \
+            --modelPath ./benchmark/PW/password_leakage_2.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0
+
+          # VN reachability
+          run_test "VN - yes (epsilon)" "Property holds" \
+            --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --epsilon 0.1
+
+          run_test "VN - no" "Property does not hold" \
+            --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0
+
+          # SD reachability
+          run_test "SD - no" "Property does not hold" \
+            --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 -cop '>'
+
+          # Buchi reachability
+          run_test "IJ - yes (buechi)" "Property holds" \
+            --modelPath ./benchmark/IJ/ij_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi
+
+          run_test "IJ-asym - no (buechi)" "Property does not hold" \
+            --modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --buechi
+
+          # Multi-objective reachability (fast cases)
+          run_test "FDR 0.59-0.61 - yes" "Property holds" \
+            --modelPath ./benchmark/FDR/fdr_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 \
+            --schedList 1 1 1 1 1 1 1 1 1 1 1 1 \
+            --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 \
+            --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop '!='
+
+          run_test "RS 0.59-0.61 - yes" "Property holds" \
+            --modelPath ./benchmark/RS/rs_0.59-0.61_6.prism --numPred 6 --numInit 12 --numScheds 1 \
+            --schedList 1 1 1 1 1 1 1 1 1 1 1 1 \
+            --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 \
+            --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop '!='
+
+          echo ""
+          echo "=== Results: $PASSED passed, $FAILED failed ==="
+          [ "$FAILED" -eq 0 ]
+
+      - name: Check model parsing (smoke tests)
+        run: |
+          set -e
+          PASSED=0
+          FAILED=0
+
+          check_model() {
+            local desc="$1"
+            shift
+            echo "--- CheckModel: $desc ---"
+            output=$(python3 relprop.py "$@" 2>&1) || true
+            if echo "$output" | grep -q "Parsing + building model" && ! echo "$output" | grep -q "Unexpected error"; then
+              echo "  PASS"
+              PASSED=$((PASSED + 1))
+            else
+              echo "  FAIL"
+              echo "$output"
+              FAILED=$((FAILED + 1))
+            fi
+          }
+
+          check_model "RT janitor_20" \
+            --modelPath ./benchmark/RT/janitor_20.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 --checkModel
+
+          check_model "RT janitor_100" \
+            --modelPath ./benchmark/RT/janitor_100.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 --checkModel
+
+          check_model "TA tl_8" \
+            --modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0 --checkModel
+
+          check_model "TA tl_16" \
+            --modelPath ./benchmark/TA/tl_16.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0 --checkModel
+
+          check_model "TA tl_24" \
+            --modelPath ./benchmark/TA/tl_24.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets j0 j0 --coefficient 1 -1 0 --checkModel
+
+          check_model "TS th20_200" \
+            --modelPath ./benchmark/TS/th20_200.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets terml1 terml1 --coefficient 1 -1 0 --checkModel
+
+          check_model "PW password_leakage_2" \
+            --modelPath ./benchmark/PW/password_leakage_2.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets counter0 counter0 --coefficient 1 -1 0 --checkModel
+
+          check_model "PW password_leakage_4" \
+            --modelPath ./benchmark/PW/password_leakage_4.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets counter0 counter0 --coefficient 1 -1 0 --checkModel
+
+          check_model "VN vn-gen_1" \
+            --modelPath ./benchmark/VN/vn-gen_1.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --checkModel
+
+          check_model "VN vn-gen_10" \
+            --modelPath ./benchmark/VN/vn-gen_10.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets res_is_0 res_is_1 --coefficient 1 -1 0 --checkModel
+
+          check_model "IJ ij_3" \
+            --modelPath ./benchmark/IJ/ij_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --checkModel
+
+          check_model "IJ ij_a_3" \
+            --modelPath ./benchmark/IJ/ij_a_3.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t2 t3 --coefficient 1 -1 0 --checkModel
+
+          check_model "IJ ij_10" \
+            --modelPath ./benchmark/IJ/ij_10.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t9 t10 --coefficient 1 -1 0 --checkModel
+
+          check_model "IJ ij_a_10" \
+            --modelPath ./benchmark/IJ/ij_a_10.nm --numInit 2 --numScheds 1 --schedList 1 1 --targets t9 t10 --coefficient 1 -1 0 --checkModel
+
+          check_model "SD simple" \
+            --modelPath ./benchmark/SD/simple/sketch.templ --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 --checkModel
+
+          check_model "SD larger-1" \
+            --modelPath ./benchmark/SD/larger-1/sketch.templ --numInit 2 --numScheds 1 --schedList 1 1 --targets target target --coefficient 1 -1 0 --checkModel
+
+          check_model "FDR fdr_6" \
+            --modelPath ./benchmark/FDR/fdr_6.prism --numPred 6 --numInit 12 --numScheds 1 \
+            --schedList 1 1 1 1 1 1 1 1 1 1 1 1 \
+            --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 \
+            --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop '!=' --checkModel
+
+          check_model "RS rs_6" \
+            --modelPath ./benchmark/RS/rs_6.prism --numPred 6 --numInit 12 --numScheds 1 \
+            --schedList 1 1 1 1 1 1 1 1 1 1 1 1 \
+            --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d0 \
+            --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop '!=' --checkModel
+
+          echo ""
+          echo "=== CheckModel Results: $PASSED passed, $FAILED failed ==="
+          [ "$FAILED" -eq 0 ]
