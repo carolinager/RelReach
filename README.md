@@ -84,7 +84,7 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
   - Analogously for the other variants
 - TA(2): ```--modelPath ./benchmark/TA/tl_8.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets j0 j0 --coefficient 1 -1 0``` and same for ```j1``` and ```j2```
   - Returns "No" instantly, already for target j0 alone
-- PW(2) ```--modelPath ./benchmark/PW/password_leakage_1.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
+- PW(2) ```--modelPath ./benchmark/PW/password_leakage_2.nm --numInit 2 --numScheds 2 --schedList 1 2 --targets counter0 counter0 --coefficient 1 -1 0``` and same for the other values for counter
   - Returns "No" instantly, also if init1:s=0, init2:s=2 (pwd is s=1)
 
 ### Reachability Sample commands for ```numScheds```=1, ```numInit```=2:
