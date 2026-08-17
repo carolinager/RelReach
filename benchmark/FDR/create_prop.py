@@ -3,28 +3,25 @@ import re
 
 N = int(sys.argv[1])
 
+file_name = f"fdr_0.59-0.61_{N}.prism"
 
 ## Property for RelProp
-prop_file_name = f"prop_{N}.txt"
-prop_file_name_a = f"prop_0.59-0.61_{N}.txt"
+prop_file_name = f"prop_0.59-0.61_{N}.txt"
 
-with open(prop_file_name, 'w') as prop_file:
-    with open(prop_file_name_a, 'w') as prop_file_a:
-        prop_file.write(f"--modelPath ./benchmark/FDR/{file_name} ")
-        prop_file_a.write(f"--modelPath ./benchmark/FDR/{file_name_a} ")
-        for prop_file_x in [prop_file, prop_file_a]:
-            prop_file_x.write(f"--numPred {N} --numInit {2*N} --numScheds 1 ")
-            prop_file_x.write("--schedList ")
-            for i in range(2*N):
-                prop_file_x.write("1 ")
-            prop_file_x.write("--targets ")
-            for i in range(N-1):
-                prop_file_x.write(f"d{i} d{i+1} ")
-            prop_file_x.write(f"d{N-1} d0 ")
-            prop_file_x.write("--coefficient ")
-            for i in range(N):
-                prop_file_x.write("1 -1 0 ")
-            prop_file_x.write("-cop !=")
+with open(prop_file_name, 'w') as prop_file_x:
+    prop_file_x.write(f"--modelPath ./benchmark/FDR/{file_name} ")
+    prop_file_x.write(f"--numPred {N} --numInit {2*N} --numScheds 1 ")
+    prop_file_x.write("--schedList ")
+    for i in range(2*N):
+        prop_file_x.write("1 ")
+    prop_file_x.write("--targets ")
+    for i in range(N-1):
+        prop_file_x.write(f"d{i} d{i+1} ")
+    prop_file_x.write(f"d{N-1} d0 ")
+    prop_file_x.write("--coefficient ")
+    for i in range(N):
+        prop_file_x.write("1 -1 0 ")
+    prop_file_x.write("-cop !=")
 
 ## Property for HyperProb
 prop_file_name = f"prop_HyperProb_{N}.txt"
