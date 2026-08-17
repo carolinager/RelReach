@@ -193,7 +193,7 @@ def transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact
     unfoldings = {}
     for (comb, rel_ind) in ind_dict.items():
         rel_target_labels = set([targets[i - 1] for i in rel_ind])
-        rel_target_states_dict = {target:set(model.parsed_model.labeling.get_states(target)) for target in rel_target_labels}
+        rel_target_statesets = {model.parsed_model.labeling.get_states(target) for target in rel_target_labels}
 
         # storm builds unfolding differently to how it is defined in the paper
         # # Paper: all *outgoing* transitions of (the first visit to) a target state lead to a new copy of the MDP
@@ -203,8 +203,8 @@ def transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact
 
         # build memory structure for each set of target states
         memorystructures = []
-        for i in rel_ind:
-            goalstates = model.parsed_model.labeling.get_states(targets[i - 1])
+        for goalstates in rel_target_statesets:
+            #goalstates = model.parsed_model.labeling.get_states(targets[i - 1])
             if exact:
                 memoryBuilder = stormpy.storage.MemoryStructureBuilderExact(2, model.parsed_model, False)
             else:
@@ -216,8 +216,8 @@ def transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact
 
         # take the product of all memory structures
         product_memorystructure = memorystructures[0]
-        if len(rel_ind) > 1:
-            for i in range(2, len(rel_ind)):
+        if len(rel_target_statesets) > 1:
+            for i in range(2, len(rel_target_statesets)):
                 product_memorystructure = product_memorystructure.product(memorystructures[i])
 
         # take the product of the memory structure with the model -> goal unfolding!
@@ -394,6 +394,8 @@ def mc_moa(model, numPred, numInit, schedList, targets, coeff, compOp, epsilon, 
         start_moa_preproc_time = time.perf_counter()
         processed_model = transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact)
         end_moa_preproc_time = time.perf_counter()
+        common.colourinfo("Number of states of combined MDP: {0}".format(processed_model.nr_states), False)
+        common.colourinfo("Number of transition of combined MDPs: {0}".format(processed_model.nr_transitions), False)
         common.colourinfo("Constructing the combined MDP took: " + str(
             round(end_moa_preproc_time - start_moa_preproc_time, 2)) + " seconds",
                           False)
