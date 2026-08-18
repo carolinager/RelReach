@@ -204,15 +204,35 @@ def transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact
         # build memory structure for each set of target states
         memorystructures = []
         for goalstates in rel_target_statesets:
-            #goalstates = model.parsed_model.labeling.get_states(targets[i - 1])
-            if exact:
-                memoryBuilder = stormpy.storage.MemoryStructureBuilderExact(2, model.parsed_model, False)
+            # first check whether all goal states are absorbing
+            all_goalstates_absorbing = True
+            for s in goalstates:
+                rows = model.parsed_model.transition_matrix.get_rows_for_group(s)
+                for row in rows:
+                    row_iter = model.parsed_model.transition_matrix.row_iter(row, row)
+                    for entry in row_iter:
+                        if entry.value() != 1 or entry.column != s:
+                            all_goalstates_absorbing
+            if all_goalstates_absorbing:
+                # build trivial memorystructure
+                if exact:
+                    memoryBuilder = stormpy.storage.MemoryStructureBuilderExact(1, model.parsed_model, False)
+                else:
+                    memoryBuilder = stormpy.storage.MemoryStructureBuilder(1, model.parsed_model, False)
+                memoryBuilder.set_transition(0, 0, stormpy.BitVector(model.parsed_model.nr_states, True))
+                memorystructures.append(memoryBuilder.build())
             else:
-                memoryBuilder = stormpy.storage.MemoryStructureBuilder(2, model.parsed_model, False)
-            memoryBuilder.set_transition(0, 0, ~goalstates)
-            memoryBuilder.set_transition(0, 1, goalstates)
-            memoryBuilder.set_transition(1, 1, stormpy.BitVector(model.parsed_model.nr_states, True))
-            memorystructures.append(memoryBuilder.build())
+                # build memorystructure that remembers whether goalstates have been visited
+                if exact:
+                    memoryBuilder = stormpy.storage.MemoryStructureBuilderExact(2, model.parsed_model, False)
+                else:
+                    memoryBuilder = stormpy.storage.MemoryStructureBuilder(2, model.parsed_model, False)
+                memoryBuilder.set_transition(0, 0, ~goalstates)
+                memoryBuilder.set_transition(0, 1, goalstates)
+                memoryBuilder.set_transition(1, 1, stormpy.BitVector(model.parsed_model.nr_states, True))
+                memorystructures.append(memoryBuilder.build())
+
+
 
         # take the product of all memory structures
         product_memorystructure = memorystructures[0]
