@@ -212,7 +212,7 @@ def transform_to_moa(model, equivClass, numSum, schedList, targets, coeff, exact
                     row_iter = model.parsed_model.transition_matrix.row_iter(row, row)
                     for entry in row_iter:
                         if entry.value() != 1 or entry.column != s:
-                            all_goalstates_absorbing
+                            all_goalstates_absorbing = False
             if all_goalstates_absorbing:
                 # build trivial memorystructure
                 if exact:
