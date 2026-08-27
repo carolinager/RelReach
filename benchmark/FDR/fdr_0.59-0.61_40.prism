@@ -1,0 +1,144 @@
+// https://zenodo.org/records/10438916
+// Fast Dice Roller Algorithm for uniform random sampling using coin flips [J. Lumbroso, arXiv:1304.1916, 2013]
+// The given encoding is based on a transformation to a probabilistic program by Daniel Zilken
+// Extended to biased coins by Lina Gerlach
+
+mdp
+
+const int N=40; // N > 0, the algorithm samples uniformly from {0, ..., N-1}
+
+const double bias_l = 59/100; // lower bound for bias towards 0
+const double bias_u = 61/100; // upper bound for bias towards 0
+
+formula decrHeads = 2*c >= N ? N : 0;
+formula decrTails = 2*c+1 >= N ? N : 0;
+module main
+    v : [0..N] init 1;
+    c : [0..N] init 0;
+    [l] v<N -> bias_l : (v' =min(N,2*v-decrHeads)) & (c'=2*c-decrHeads) + (1-bias_l) : (v' =min(N,2*v-decrTails)) & (c'=2*c+1-decrTails);
+    [u] v<N -> bias_u : (v' =min(N,2*v-decrHeads)) & (c'=2*c-decrHeads) + (1-bias_u) : (v' =min(N,2*v-decrTails)) & (c'=2*c+1-decrTails);
+    [] v=N -> 1 : true;
+endmodule
+
+label "init1" = (v=1)&(c=0);
+label "init2" = (v=1)&(c=0);
+label "init3" = (v=1)&(c=0);
+label "init4" = (v=1)&(c=0);
+label "init5" = (v=1)&(c=0);
+label "init6" = (v=1)&(c=0);
+label "init7" = (v=1)&(c=0);
+label "init8" = (v=1)&(c=0);
+label "init9" = (v=1)&(c=0);
+label "init10" = (v=1)&(c=0);
+label "init11" = (v=1)&(c=0);
+label "init12" = (v=1)&(c=0);
+label "init13" = (v=1)&(c=0);
+label "init14" = (v=1)&(c=0);
+label "init15" = (v=1)&(c=0);
+label "init16" = (v=1)&(c=0);
+label "init17" = (v=1)&(c=0);
+label "init18" = (v=1)&(c=0);
+label "init19" = (v=1)&(c=0);
+label "init20" = (v=1)&(c=0);
+label "init21" = (v=1)&(c=0);
+label "init22" = (v=1)&(c=0);
+label "init23" = (v=1)&(c=0);
+label "init24" = (v=1)&(c=0);
+label "init25" = (v=1)&(c=0);
+label "init26" = (v=1)&(c=0);
+label "init27" = (v=1)&(c=0);
+label "init28" = (v=1)&(c=0);
+label "init29" = (v=1)&(c=0);
+label "init30" = (v=1)&(c=0);
+label "init31" = (v=1)&(c=0);
+label "init32" = (v=1)&(c=0);
+label "init33" = (v=1)&(c=0);
+label "init34" = (v=1)&(c=0);
+label "init35" = (v=1)&(c=0);
+label "init36" = (v=1)&(c=0);
+label "init37" = (v=1)&(c=0);
+label "init38" = (v=1)&(c=0);
+label "init39" = (v=1)&(c=0);
+label "init40" = (v=1)&(c=0);
+label "init41" = (v=1)&(c=0);
+label "init42" = (v=1)&(c=0);
+label "init43" = (v=1)&(c=0);
+label "init44" = (v=1)&(c=0);
+label "init45" = (v=1)&(c=0);
+label "init46" = (v=1)&(c=0);
+label "init47" = (v=1)&(c=0);
+label "init48" = (v=1)&(c=0);
+label "init49" = (v=1)&(c=0);
+label "init50" = (v=1)&(c=0);
+label "init51" = (v=1)&(c=0);
+label "init52" = (v=1)&(c=0);
+label "init53" = (v=1)&(c=0);
+label "init54" = (v=1)&(c=0);
+label "init55" = (v=1)&(c=0);
+label "init56" = (v=1)&(c=0);
+label "init57" = (v=1)&(c=0);
+label "init58" = (v=1)&(c=0);
+label "init59" = (v=1)&(c=0);
+label "init60" = (v=1)&(c=0);
+label "init61" = (v=1)&(c=0);
+label "init62" = (v=1)&(c=0);
+label "init63" = (v=1)&(c=0);
+label "init64" = (v=1)&(c=0);
+label "init65" = (v=1)&(c=0);
+label "init66" = (v=1)&(c=0);
+label "init67" = (v=1)&(c=0);
+label "init68" = (v=1)&(c=0);
+label "init69" = (v=1)&(c=0);
+label "init70" = (v=1)&(c=0);
+label "init71" = (v=1)&(c=0);
+label "init72" = (v=1)&(c=0);
+label "init73" = (v=1)&(c=0);
+label "init74" = (v=1)&(c=0);
+label "init75" = (v=1)&(c=0);
+label "init76" = (v=1)&(c=0);
+label "init77" = (v=1)&(c=0);
+label "init78" = (v=1)&(c=0);
+label "init79" = (v=1)&(c=0);
+label "init80" = (v=1)&(c=0);
+
+label "d0" = (v=N)&(c=0);
+label "d1" = (v=N)&(c=1);
+label "d2" = (v=N)&(c=2);
+label "d3" = (v=N)&(c=3);
+label "d4" = (v=N)&(c=4);
+label "d5" = (v=N)&(c=5);
+label "d6" = (v=N)&(c=6);
+label "d7" = (v=N)&(c=7);
+label "d8" = (v=N)&(c=8);
+label "d9" = (v=N)&(c=9);
+label "d10" = (v=N)&(c=10);
+label "d11" = (v=N)&(c=11);
+label "d12" = (v=N)&(c=12);
+label "d13" = (v=N)&(c=13);
+label "d14" = (v=N)&(c=14);
+label "d15" = (v=N)&(c=15);
+label "d16" = (v=N)&(c=16);
+label "d17" = (v=N)&(c=17);
+label "d18" = (v=N)&(c=18);
+label "d19" = (v=N)&(c=19);
+label "d20" = (v=N)&(c=20);
+label "d21" = (v=N)&(c=21);
+label "d22" = (v=N)&(c=22);
+label "d23" = (v=N)&(c=23);
+label "d24" = (v=N)&(c=24);
+label "d25" = (v=N)&(c=25);
+label "d26" = (v=N)&(c=26);
+label "d27" = (v=N)&(c=27);
+label "d28" = (v=N)&(c=28);
+label "d29" = (v=N)&(c=29);
+label "d30" = (v=N)&(c=30);
+label "d31" = (v=N)&(c=31);
+label "d32" = (v=N)&(c=32);
+label "d33" = (v=N)&(c=33);
+label "d34" = (v=N)&(c=34);
+label "d35" = (v=N)&(c=35);
+label "d36" = (v=N)&(c=36);
+label "d37" = (v=N)&(c=37);
+label "d38" = (v=N)&(c=38);
+label "d39" = (v=N)&(c=39);
+
