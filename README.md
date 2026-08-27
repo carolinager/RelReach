@@ -134,9 +134,9 @@ relates to the bound $q$ (i.e., the last element of ```coefficients```) as speci
     - Returns "No" instantly for ```--epsilon``` >= 0.13
 
 ## Tested with:
-- [stormpy master branch](https://github.com/stormchecker/stormpy) Commit 751a6585cd210158eaef775010b8c9268e4a0d0b
-- ([storm master branch](https://github.com/stormchecker/storm)) Commit dd98ba26ce06159587b81d528c79fb07043b2b84
-  - Includes pycarl for [carl-storm 14.35](https://github.com/stormchecker/carl-storm/releases/tag/14.35)
+- [stormpy 1.14.0](https://github.com/stormchecker/stormpy)
+  - Based on [storm 1.14.0](https://github.com/stormchecker/storm)
+  - Includes pycarl for [carl-storm 14.36](https://github.com/stormchecker/carl-storm)
 
 
 Note: We use assertions for verifying the format of the input arguments. Disable at your own risk
