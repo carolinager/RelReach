@@ -1,11 +1,12 @@
 # Preparation: 
-## build docker image for storm-1.12-master -> yourusername/	storm-relprop
-## build stormpy docker image with --build-arg STORM_BASE=yourusername/storm-relprop -> yourusername/stormpy-relprop
+## Pull docker image for stormpy 1.14.0: docker pull movesrwth/stormpy:1.14.0
 
 # Then build docker image for RelProp with:
-## docker build -t yourusername/relprop . --no-cache
+## docker build -t relprop . --no-cache
+## docker build -t relprop . --no-cache --build-arg STORMPY_BASE=different_stormpy_image
 
-FROM yourusername/stormpy-relprop
+ARG STORMPY_BASE=movesrwth/stormpy:1.14.0
+FROM $STORMPY_BASE
 
 # Obtain latest version of RelProp from public repository
 WORKDIR /opt/
