@@ -1,1 +1,0 @@
---modelPath ./benchmark/RS/rs_0.59-0.61_10.prism --numPred 10 --numInit 20 --numScheds 1 --schedList 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 --targets d0 d1 d1 d2 d2 d3 d3 d4 d4 d5 d5 d6 d6 d7 d7 d8 d8 d9 d9 d0 --coefficient 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 1 -1 0 -cop !=
